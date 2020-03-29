@@ -26,7 +26,7 @@ task("default", async ctx => {
     }
   });
 
-  response.onWatch(() => {
+  response.onWatch(async () => {
     const appDir = "./vscode-patch/src/vs/editor/browser/widget/cactiva/";
     fs.readFile(appDir + "cactiva-app.js", "utf8", function(err, data) {
       if (err) {
@@ -41,7 +41,6 @@ task("default", async ctx => {
 			});
 			__fuse.bundle({`
       );
-
       fs.writeFile(appDir + "cactiva-app.js", result, "utf8", function(err) {
         if (err) return console.log(err);
       });
@@ -53,10 +52,10 @@ task("default", async ctx => {
           if (err) return console.log(err);
         }
       );
+      fs.copy(
+        "./vscode-patch/src/vs/editor/browser/widget/cactiva/",
+        "./vscode/src/vs/editor/browser/widget/cactiva/"
+      );
     });
-    fs.copy(
-      "./vscode-patch/src/vs/editor/browser/widget/cactiva/",
-      "./vscode/src/vs/editor/browser/widget/cactiva/"
-    );
   });
 });

@@ -1,0 +1,1 @@
+declare module 'vs/editor/browser/widget/cactiva/cactiva-app';

@@ -51,367 +51,8 @@ exports.default = __DefaultExport__;
 
 },
 
-// node_modules/fuse-box/modules/fuse-box-websocket/index.js @7
-7: function(__fusereq, exports, module){
-const events = __fusereq(13);
-function log(text) {
-  console.info(`%c${text}`, 'color: #237abe');
-}
-class SocketClient {
-  constructor(opts) {
-    opts = opts || ({});
-    const port = opts.port || window.location.port;
-    const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const domain = location.hostname || 'localhost';
-    if (opts.connectionURL) {
-      this.url = opts.connectionURL;
-    } else {
-      if (opts.useCurrentURL) {
-        this.url = protocol + location.hostname + (location.port ? ':' + location.port : '');
-      }
-      if (opts.port) {
-        this.url = `${protocol}${domain}:${opts.port}`;
-      }
-    }
-    this.authSent = false;
-    this.emitter = new events.EventEmitter();
-  }
-  reconnect(fn) {
-    setTimeout(() => {
-      this.emitter.emit('reconnect', {
-        message: 'Trying to reconnect'
-      });
-      this.connect(fn);
-    }, 5000);
-  }
-  on(event, fn) {
-    this.emitter.on(event, fn);
-  }
-  connect(fn) {
-    setTimeout(() => {
-      log(`Connecting to FuseBox HMR at ${this.url}`);
-      this.client = new WebSocket(this.url);
-      this.bindEvents(fn);
-    }, 0);
-  }
-  close() {
-    this.client.close();
-  }
-  send(eventName, data) {
-    if (this.client.readyState === 1) {
-      this.client.send(JSON.stringify({
-        name: eventName,
-        payload: data || ({})
-      }));
-    }
-  }
-  error(data) {
-    this.emitter.emit('error', data);
-  }
-  bindEvents(fn) {
-    this.client.onopen = event => {
-      log('Connection successful');
-      if (fn) {
-        fn(this);
-      }
-    };
-    this.client.onerror = event => {
-      this.error({
-        reason: event.reason,
-        message: 'Socket error'
-      });
-    };
-    this.client.onclose = event => {
-      this.emitter.emit('close', {
-        message: 'Socket closed'
-      });
-      if (event.code !== 1011) {
-        this.reconnect(fn);
-      }
-    };
-    this.client.onmessage = event => {
-      let data = event.data;
-      if (data) {
-        let item = JSON.parse(data);
-        this.emitter.emit(item.name, item.payload);
-      }
-    };
-  }
-}
-exports.SocketClient = SocketClient;
-
-},
-
-// node_modules/fuse-box/modules/events/index.js @13
-13: function(__fusereq, exports, module){
-function EventEmitter() {
-  this._events = this._events || ({});
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-EventEmitter.EventEmitter = EventEmitter;
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-EventEmitter.defaultMaxListeners = 10;
-EventEmitter.prototype.setMaxListeners = function (n) {
-  if (!isNumber(n) || n < 0 || isNaN(n)) throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-EventEmitter.prototype.emit = function (type) {
-  var er, handler, len, args, i, listeners;
-  if (!this._events) this._events = {};
-  if (type === 'error') {
-    if (!this._events.error || isObject(this._events.error) && !this._events.error.length) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er;
-      }
-      throw TypeError('Uncaught, unspecified "error" event.');
-    }
-  }
-  handler = this._events[type];
-  if (isUndefined(handler)) return false;
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      default:
-        args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    args = Array.prototype.slice.call(arguments, 1);
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++) listeners[i].apply(this, args);
-  }
-  return true;
-};
-EventEmitter.prototype.addListener = function (type, listener) {
-  var m;
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  if (!this._events) this._events = {};
-  if (this._events.newListener) this.emit('newListener', type, isFunction(listener.listener) ? listener.listener : listener);
-  if (!this._events[type]) this._events[type] = listener; else if (isObject(this._events[type])) this._events[type].push(listener); else this._events[type] = [this._events[type], listener];
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
-      if (typeof console.trace === 'function') {
-        console.trace();
-      }
-    }
-  }
-  return this;
-};
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-EventEmitter.prototype.once = function (type, listener) {
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  var fired = false;
-  function g() {
-    this.removeListener(type, g);
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-  g.listener = listener;
-  this.on(type, g);
-  return this;
-};
-EventEmitter.prototype.removeListener = function (type, listener) {
-  var list, position, length, i;
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  if (!this._events || !this._events[type]) return this;
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-  if (list === listener || isFunction(list.listener) && list.listener === listener) {
-    delete this._events[type];
-    if (this._events.removeListener) this.emit('removeListener', type, listener);
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0; ) {
-      if (list[i] === listener || list[i].listener && list[i].listener === listener) {
-        position = i;
-        break;
-      }
-    }
-    if (position < 0) return this;
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-    if (this._events.removeListener) this.emit('removeListener', type, listener);
-  }
-  return this;
-};
-EventEmitter.prototype.removeAllListeners = function (type) {
-  var key, listeners;
-  if (!this._events) return this;
-  if (!this._events.removeListener) {
-    if (arguments.length === 0) this._events = {}; else if (this._events[type]) delete this._events[type];
-    return this;
-  }
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
-    }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-  listeners = this._events[type];
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else if (listeners) {
-    while (listeners.length) this.removeListener(type, listeners[listeners.length - 1]);
-  }
-  delete this._events[type];
-  return this;
-};
-EventEmitter.prototype.listeners = function (type) {
-  var ret;
-  if (!this._events || !this._events[type]) ret = []; else if (isFunction(this._events[type])) ret = [this._events[type]]; else ret = this._events[type].slice();
-  return ret;
-};
-EventEmitter.prototype.listenerCount = function (type) {
-  if (this._events) {
-    var evlistener = this._events[type];
-    if (isFunction(evlistener)) return 1; else if (evlistener) return evlistener.length;
-  }
-  return 0;
-};
-EventEmitter.listenerCount = function (emitter, type) {
-  return emitter.listenerCount(type);
-};
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-},
-
-// node_modules/fuse-box/modules/fuse-box-hot-reload/clientHotReload.ts @3
-3: function(__fusereq, exports, module){
-exports.__esModule = true;
-const {SocketClient} = __fusereq(7);
-function log(text) {
-  console.info(`%c${text}`, 'color: #237abe');
-}
-const STYLESHEET_EXTENSIONS = ['.css', '.scss', '.sass', '.less', '.styl'];
-function gatherSummary() {
-  const modules = [];
-  for (const id in __fuse.modules) {
-    modules.push(parseInt(id));
-  }
-  return {
-    modules
-  };
-}
-function createHMRHelper(payload) {
-  const {updates} = payload;
-  let isStylesheeetUpdate = true;
-  for (const item of updates) {
-    const file = item.path;
-    const s = file.match(/(\.\w+)$/i);
-    const extension = s[1];
-    if (!STYLESHEET_EXTENSIONS.includes(extension)) {
-      isStylesheeetUpdate = false;
-    }
-  }
-  return {
-    isStylesheeetUpdate,
-    callEntries: () => {
-      const appEntries = [1];
-      for (const entryId of appEntries) {
-        __fuse.r(entryId);
-      }
-    },
-    callModules: modules => {
-      for (const item of modules) __fuse.r(item.id);
-    },
-    flushAll: () => {
-      __fuse.c = {};
-    },
-    flushModules: modules => {
-      for (const item of modules) {
-        __fuse.c[item.id] = undefined;
-      }
-    },
-    updateModules: () => {
-      for (const update of updates) {
-        new Function(update.content)();
-      }
-    }
-  };
-}
-exports.connect = opts => {
-  let client = new SocketClient(opts);
-  client.connect();
-  client.on('get-summary', data => {
-    const {id} = data;
-    const summary = gatherSummary();
-    client.send('summary', {
-      id,
-      summary
-    });
-  });
-  client.on('reload', () => {
-    window.location.reload();
-  });
-  client.on('hmr', payload => {
-    const {updates} = payload;
-    const hmr = createHMRHelper(payload);
-    const hmrModuleId = 2;
-    if (hmrModuleId) {
-      const hmrModule = __fuse.r(hmrModuleId);
-      if (!hmrModule.default) throw new Error('An HMR plugin must export a default function');
-      hmrModule.default(payload, hmr);
-      return;
-    }
-    hmr.updateModules();
-    if (hmr.isStylesheeetUpdate) {
-      log(`Flushing ${updates.map(item => item.path)}`);
-      hmr.flushModules(updates);
-      log(`Calling modules ${updates.map(item => item.path)}`);
-      hmr.callModules(updates);
-    } else {
-      log(`Flushing all`);
-      hmr.flushAll();
-      log(`Calling entries all`);
-      hmr.callEntries();
-    }
-  });
-};
-
-},
-
-// node_modules/object-assign/index.js @14
-14: function(__fusereq, exports, module){
+// node_modules/object-assign/index.js @15
+15: function(__fusereq, exports, module){
 'use strict';
 var getOwnPropertySymbols = Object.getOwnPropertySymbols;
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -479,8 +120,8 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 },
 
-// node_modules/prop-types/checkPropTypes.js @15
-15: function(__fusereq, exports, module){
+// node_modules/prop-types/checkPropTypes.js @16
+16: function(__fusereq, exports, module){
 'use strict';
 var printWarning = function () {};
 var ReactPropTypesSecret = __fusereq(19);
@@ -538,17 +179,17 @@ module.exports = ReactPropTypesSecret;
 // node_modules/react/index.js @4
 4: function(__fusereq, exports, module){
 'use strict';
-module.exports = __fusereq(8);
+module.exports = __fusereq(7);
 
 },
 
-// node_modules/react/cjs/react.development.js @8
-8: function(__fusereq, exports, module){
+// node_modules/react/cjs/react.development.js @7
+7: function(__fusereq, exports, module){
 'use strict';
 (function () {
   'use strict';
-  var _assign = __fusereq(14);
-  var checkPropTypes = __fusereq(15);
+  var _assign = __fusereq(15);
+  var checkPropTypes = __fusereq(16);
   var ReactVersion = '16.13.1';
   var hasSymbol = typeof Symbol === 'function' && Symbol.for;
   var REACT_ELEMENT_TYPE = hasSymbol ? Symbol.for('react.element') : 0xeac7;
@@ -1774,13 +1415,8 @@ module.exports = cssHandler;
 
 },
 
-// src/components/application/Application.scss @11
-11: function(__fusereq, exports, module){
-__fusereq(12)("src/components/application/Application.scss",".Application {\n  display: flex;\n  background: red;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Application .logo {\n    margin-top: 20px;\n    width: 120px;\n    height: 120px;\n    background-size: contain;\n    background-repeat: no-repeat; }\n  .Application .welcome {\n    margin-top: 20px;\n    font-size: 50px; }\n")
-},
-
-// src/components/details/Details.scss @16
-16: function(__fusereq, exports, module){
+// src/components/details/Details.scss @14
+14: function(__fusereq, exports, module){
 __fusereq(12)("src/components/details/Details.scss",".Details {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Details .repo-link {\n    padding: 20px; }\n  .Details .try-updating {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-weight: bold; }\n  .Details .hint {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-size: 14px;\n    background-color: #f0f0f0;\n    border-radius: 5px; }\n  .Details .fork {\n    margin-top: 40px;\n    font-size: 15px; }\n")
 },
 
@@ -1788,7 +1424,7 @@ __fusereq(12)("src/components/details/Details.scss",".Details {\n  display: flex
 10: function(__fusereq, exports, module){
 exports.__esModule = true;
 var react_1 = __fusereq(4);
-__fusereq(16);
+__fusereq(14);
 function Details() {
   return react_1.createElement("div", {
     className: "Details"
@@ -1811,6 +1447,11 @@ exports.Details = Details;
 
 },
 
+// src/components/application/Application.scss @11
+11: function(__fusereq, exports, module){
+__fusereq(12)("src/components/application/Application.scss",".Application {\n  display: flex;\n  background: red;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Application .logo {\n    margin-top: 20px;\n    width: 120px;\n    height: 120px;\n    background-size: contain;\n    background-repeat: no-repeat; }\n  .Application .welcome {\n    margin-top: 20px;\n    font-size: 50px; }\n")
+},
+
 // src/components/application/Application.tsx @6
 6: function(__fusereq, exports, module){
 exports.__esModule = true;
@@ -1828,22 +1469,660 @@ exports.Application = Application;
 
 },
 
+// node_modules/fuse-box/modules/fuse-box-websocket/index.js @9
+9: function(__fusereq, exports, module){
+const events = __fusereq(13);
+function log(text) {
+  console.info(`%c${text}`, 'color: #237abe');
+}
+class SocketClient {
+  constructor(opts) {
+    opts = opts || ({});
+    const port = opts.port || window.location.port;
+    const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const domain = location.hostname || 'localhost';
+    if (opts.connectionURL) {
+      this.url = opts.connectionURL;
+    } else {
+      if (opts.useCurrentURL) {
+        this.url = protocol + location.hostname + (location.port ? ':' + location.port : '');
+      }
+      if (opts.port) {
+        this.url = `${protocol}${domain}:${opts.port}`;
+      }
+    }
+    this.authSent = false;
+    this.emitter = new events.EventEmitter();
+  }
+  reconnect(fn) {
+    setTimeout(() => {
+      this.emitter.emit('reconnect', {
+        message: 'Trying to reconnect'
+      });
+      this.connect(fn);
+    }, 5000);
+  }
+  on(event, fn) {
+    this.emitter.on(event, fn);
+  }
+  connect(fn) {
+    setTimeout(() => {
+      log(`Connecting to FuseBox HMR at ${this.url}`);
+      this.client = new WebSocket(this.url);
+      this.bindEvents(fn);
+    }, 0);
+  }
+  close() {
+    this.client.close();
+  }
+  send(eventName, data) {
+    if (this.client.readyState === 1) {
+      this.client.send(JSON.stringify({
+        name: eventName,
+        payload: data || ({})
+      }));
+    }
+  }
+  error(data) {
+    this.emitter.emit('error', data);
+  }
+  bindEvents(fn) {
+    this.client.onopen = event => {
+      log('Connection successful');
+      if (fn) {
+        fn(this);
+      }
+    };
+    this.client.onerror = event => {
+      this.error({
+        reason: event.reason,
+        message: 'Socket error'
+      });
+    };
+    this.client.onclose = event => {
+      this.emitter.emit('close', {
+        message: 'Socket closed'
+      });
+      if (event.code !== 1011) {
+        this.reconnect(fn);
+      }
+    };
+    this.client.onmessage = event => {
+      let data = event.data;
+      if (data) {
+        let item = JSON.parse(data);
+        this.emitter.emit(item.name, item.payload);
+      }
+    };
+  }
+}
+exports.SocketClient = SocketClient;
+
+},
+
+// node_modules/fuse-box/modules/events/index.js @13
+13: function(__fusereq, exports, module){
+function EventEmitter() {
+  this._events = this._events || ({});
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+EventEmitter.EventEmitter = EventEmitter;
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+EventEmitter.defaultMaxListeners = 10;
+EventEmitter.prototype.setMaxListeners = function (n) {
+  if (!isNumber(n) || n < 0 || isNaN(n)) throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+EventEmitter.prototype.emit = function (type) {
+  var er, handler, len, args, i, listeners;
+  if (!this._events) this._events = {};
+  if (type === 'error') {
+    if (!this._events.error || isObject(this._events.error) && !this._events.error.length) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er;
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+  handler = this._events[type];
+  if (isUndefined(handler)) return false;
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++) listeners[i].apply(this, args);
+  }
+  return true;
+};
+EventEmitter.prototype.addListener = function (type, listener) {
+  var m;
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  if (!this._events) this._events = {};
+  if (this._events.newListener) this.emit('newListener', type, isFunction(listener.listener) ? listener.listener : listener);
+  if (!this._events[type]) this._events[type] = listener; else if (isObject(this._events[type])) this._events[type].push(listener); else this._events[type] = [this._events[type], listener];
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
+      if (typeof console.trace === 'function') {
+        console.trace();
+      }
+    }
+  }
+  return this;
+};
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+EventEmitter.prototype.once = function (type, listener) {
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  var fired = false;
+  function g() {
+    this.removeListener(type, g);
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+  g.listener = listener;
+  this.on(type, g);
+  return this;
+};
+EventEmitter.prototype.removeListener = function (type, listener) {
+  var list, position, length, i;
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  if (!this._events || !this._events[type]) return this;
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+  if (list === listener || isFunction(list.listener) && list.listener === listener) {
+    delete this._events[type];
+    if (this._events.removeListener) this.emit('removeListener', type, listener);
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0; ) {
+      if (list[i] === listener || list[i].listener && list[i].listener === listener) {
+        position = i;
+        break;
+      }
+    }
+    if (position < 0) return this;
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+    if (this._events.removeListener) this.emit('removeListener', type, listener);
+  }
+  return this;
+};
+EventEmitter.prototype.removeAllListeners = function (type) {
+  var key, listeners;
+  if (!this._events) return this;
+  if (!this._events.removeListener) {
+    if (arguments.length === 0) this._events = {}; else if (this._events[type]) delete this._events[type];
+    return this;
+  }
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+  listeners = this._events[type];
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    while (listeners.length) this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+  return this;
+};
+EventEmitter.prototype.listeners = function (type) {
+  var ret;
+  if (!this._events || !this._events[type]) ret = []; else if (isFunction(this._events[type])) ret = [this._events[type]]; else ret = this._events[type].slice();
+  return ret;
+};
+EventEmitter.prototype.listenerCount = function (type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+    if (isFunction(evlistener)) return 1; else if (evlistener) return evlistener.length;
+  }
+  return 0;
+};
+EventEmitter.listenerCount = function (emitter, type) {
+  return emitter.listenerCount(type);
+};
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},
+
+// node_modules/fuse-box/modules/fuse-box-hot-reload/clientHotReload.ts @3
+3: function(__fusereq, exports, module){
+exports.__esModule = true;
+const {SocketClient} = __fusereq(9);
+function log(text) {
+  console.info(`%c${text}`, 'color: #237abe');
+}
+const STYLESHEET_EXTENSIONS = ['.css', '.scss', '.sass', '.less', '.styl'];
+function gatherSummary() {
+  const modules = [];
+  for (const id in __fuse.modules) {
+    modules.push(parseInt(id));
+  }
+  return {
+    modules
+  };
+}
+function createHMRHelper(payload) {
+  const {updates} = payload;
+  let isStylesheeetUpdate = true;
+  for (const item of updates) {
+    const file = item.path;
+    const s = file.match(/(\.\w+)$/i);
+    const extension = s[1];
+    if (!STYLESHEET_EXTENSIONS.includes(extension)) {
+      isStylesheeetUpdate = false;
+    }
+  }
+  return {
+    isStylesheeetUpdate,
+    callEntries: () => {
+      const appEntries = [1];
+      for (const entryId of appEntries) {
+        __fuse.r(entryId);
+      }
+    },
+    callModules: modules => {
+      for (const item of modules) __fuse.r(item.id);
+    },
+    flushAll: () => {
+      __fuse.c = {};
+    },
+    flushModules: modules => {
+      for (const item of modules) {
+        __fuse.c[item.id] = undefined;
+      }
+    },
+    updateModules: () => {
+      for (const update of updates) {
+        new Function(update.content)();
+      }
+    }
+  };
+}
+exports.connect = opts => {
+  let client = new SocketClient(opts);
+  client.connect();
+  client.on('get-summary', data => {
+    const {id} = data;
+    const summary = gatherSummary();
+    client.send('summary', {
+      id,
+      summary
+    });
+  });
+  client.on('reload', () => {
+    window.location.reload();
+  });
+  client.on('hmr', payload => {
+    const {updates} = payload;
+    const hmr = createHMRHelper(payload);
+    const hmrModuleId = 2;
+    if (hmrModuleId) {
+      const hmrModule = __fuse.r(hmrModuleId);
+      if (!hmrModule.default) throw new Error('An HMR plugin must export a default function');
+      hmrModule.default(payload, hmr);
+      return;
+    }
+    hmr.updateModules();
+    if (hmr.isStylesheeetUpdate) {
+      log(`Flushing ${updates.map(item => item.path)}`);
+      hmr.flushModules(updates);
+      log(`Calling modules ${updates.map(item => item.path)}`);
+      hmr.callModules(updates);
+    } else {
+      log(`Flushing all`);
+      hmr.flushAll();
+      log(`Calling entries all`);
+      hmr.callEntries();
+    }
+  });
+};
+
+},
+
 // node_modules/scheduler/index.js @17
 17: function(__fusereq, exports, module){
 'use strict';
-module.exports = __fusereq(20);
+module.exports = __fusereq(21);
 
 },
 
 // node_modules/scheduler/tracing.js @18
 18: function(__fusereq, exports, module){
 'use strict';
-module.exports = __fusereq(21);
+module.exports = __fusereq(20);
 
 },
 
-// node_modules/scheduler/cjs/scheduler.development.js @20
+// node_modules/scheduler/cjs/scheduler-tracing.development.js @20
 20: function(__fusereq, exports, module){
+'use strict';
+(function () {
+  'use strict';
+  var DEFAULT_THREAD_ID = 0;
+  var interactionIDCounter = 0;
+  var threadIDCounter = 0;
+  exports.__interactionsRef = null;
+  exports.__subscriberRef = null;
+  {
+    exports.__interactionsRef = {
+      current: new Set()
+    };
+    exports.__subscriberRef = {
+      current: null
+    };
+  }
+  function unstable_clear(callback) {
+    var prevInteractions = exports.__interactionsRef.current;
+    exports.__interactionsRef.current = new Set();
+    try {
+      return callback();
+    } finally {
+      exports.__interactionsRef.current = prevInteractions;
+    }
+  }
+  function unstable_getCurrent() {
+    {
+      return exports.__interactionsRef.current;
+    }
+  }
+  function unstable_getThreadID() {
+    return ++threadIDCounter;
+  }
+  function unstable_trace(name, timestamp, callback) {
+    var threadID = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DEFAULT_THREAD_ID;
+    var interaction = {
+      __count: 1,
+      id: interactionIDCounter++,
+      name: name,
+      timestamp: timestamp
+    };
+    var prevInteractions = exports.__interactionsRef.current;
+    var interactions = new Set(prevInteractions);
+    interactions.add(interaction);
+    exports.__interactionsRef.current = interactions;
+    var subscriber = exports.__subscriberRef.current;
+    var returnValue;
+    try {
+      if (subscriber !== null) {
+        subscriber.onInteractionTraced(interaction);
+      }
+    } finally {
+      try {
+        if (subscriber !== null) {
+          subscriber.onWorkStarted(interactions, threadID);
+        }
+      } finally {
+        try {
+          returnValue = callback();
+        } finally {
+          exports.__interactionsRef.current = prevInteractions;
+          try {
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(interactions, threadID);
+            }
+          } finally {
+            interaction.__count--;
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          }
+        }
+      }
+    }
+    return returnValue;
+  }
+  function unstable_wrap(callback) {
+    var threadID = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : DEFAULT_THREAD_ID;
+    var wrappedInteractions = exports.__interactionsRef.current;
+    var subscriber = exports.__subscriberRef.current;
+    if (subscriber !== null) {
+      subscriber.onWorkScheduled(wrappedInteractions, threadID);
+    }
+    wrappedInteractions.forEach(function (interaction) {
+      interaction.__count++;
+    });
+    var hasRun = false;
+    function wrapped() {
+      var prevInteractions = exports.__interactionsRef.current;
+      exports.__interactionsRef.current = wrappedInteractions;
+      subscriber = exports.__subscriberRef.current;
+      try {
+        var returnValue;
+        try {
+          if (subscriber !== null) {
+            subscriber.onWorkStarted(wrappedInteractions, threadID);
+          }
+        } finally {
+          try {
+            returnValue = callback.apply(undefined, arguments);
+          } finally {
+            exports.__interactionsRef.current = prevInteractions;
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(wrappedInteractions, threadID);
+            }
+          }
+        }
+        return returnValue;
+      } finally {
+        if (!hasRun) {
+          hasRun = true;
+          wrappedInteractions.forEach(function (interaction) {
+            interaction.__count--;
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          });
+        }
+      }
+    }
+    wrapped.cancel = function cancel() {
+      subscriber = exports.__subscriberRef.current;
+      try {
+        if (subscriber !== null) {
+          subscriber.onWorkCanceled(wrappedInteractions, threadID);
+        }
+      } finally {
+        wrappedInteractions.forEach(function (interaction) {
+          interaction.__count--;
+          if (subscriber && interaction.__count === 0) {
+            subscriber.onInteractionScheduledWorkCompleted(interaction);
+          }
+        });
+      }
+    };
+    return wrapped;
+  }
+  var subscribers = null;
+  {
+    subscribers = new Set();
+  }
+  function unstable_subscribe(subscriber) {
+    {
+      subscribers.add(subscriber);
+      if (subscribers.size === 1) {
+        exports.__subscriberRef.current = {
+          onInteractionScheduledWorkCompleted: onInteractionScheduledWorkCompleted,
+          onInteractionTraced: onInteractionTraced,
+          onWorkCanceled: onWorkCanceled,
+          onWorkScheduled: onWorkScheduled,
+          onWorkStarted: onWorkStarted,
+          onWorkStopped: onWorkStopped
+        };
+      }
+    }
+  }
+  function unstable_unsubscribe(subscriber) {
+    {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0) {
+        exports.__subscriberRef.current = null;
+      }
+    }
+  }
+  function onInteractionTraced(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onInteractionTraced(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onInteractionScheduledWorkCompleted(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onInteractionScheduledWorkCompleted(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkScheduled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkScheduled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkStarted(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkStarted(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkStopped(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkStopped(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkCanceled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkCanceled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  exports.unstable_clear = unstable_clear;
+  exports.unstable_getCurrent = unstable_getCurrent;
+  exports.unstable_getThreadID = unstable_getThreadID;
+  exports.unstable_subscribe = unstable_subscribe;
+  exports.unstable_trace = unstable_trace;
+  exports.unstable_unsubscribe = unstable_unsubscribe;
+  exports.unstable_wrap = unstable_wrap;
+})();
+
+},
+
+// node_modules/scheduler/cjs/scheduler.development.js @21
+21: function(__fusereq, exports, module){
 'use strict';
 (function () {
   'use strict';
@@ -2489,285 +2768,6 @@ module.exports = __fusereq(21);
 
 },
 
-// node_modules/scheduler/cjs/scheduler-tracing.development.js @21
-21: function(__fusereq, exports, module){
-'use strict';
-(function () {
-  'use strict';
-  var DEFAULT_THREAD_ID = 0;
-  var interactionIDCounter = 0;
-  var threadIDCounter = 0;
-  exports.__interactionsRef = null;
-  exports.__subscriberRef = null;
-  {
-    exports.__interactionsRef = {
-      current: new Set()
-    };
-    exports.__subscriberRef = {
-      current: null
-    };
-  }
-  function unstable_clear(callback) {
-    var prevInteractions = exports.__interactionsRef.current;
-    exports.__interactionsRef.current = new Set();
-    try {
-      return callback();
-    } finally {
-      exports.__interactionsRef.current = prevInteractions;
-    }
-  }
-  function unstable_getCurrent() {
-    {
-      return exports.__interactionsRef.current;
-    }
-  }
-  function unstable_getThreadID() {
-    return ++threadIDCounter;
-  }
-  function unstable_trace(name, timestamp, callback) {
-    var threadID = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DEFAULT_THREAD_ID;
-    var interaction = {
-      __count: 1,
-      id: interactionIDCounter++,
-      name: name,
-      timestamp: timestamp
-    };
-    var prevInteractions = exports.__interactionsRef.current;
-    var interactions = new Set(prevInteractions);
-    interactions.add(interaction);
-    exports.__interactionsRef.current = interactions;
-    var subscriber = exports.__subscriberRef.current;
-    var returnValue;
-    try {
-      if (subscriber !== null) {
-        subscriber.onInteractionTraced(interaction);
-      }
-    } finally {
-      try {
-        if (subscriber !== null) {
-          subscriber.onWorkStarted(interactions, threadID);
-        }
-      } finally {
-        try {
-          returnValue = callback();
-        } finally {
-          exports.__interactionsRef.current = prevInteractions;
-          try {
-            if (subscriber !== null) {
-              subscriber.onWorkStopped(interactions, threadID);
-            }
-          } finally {
-            interaction.__count--;
-            if (subscriber !== null && interaction.__count === 0) {
-              subscriber.onInteractionScheduledWorkCompleted(interaction);
-            }
-          }
-        }
-      }
-    }
-    return returnValue;
-  }
-  function unstable_wrap(callback) {
-    var threadID = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : DEFAULT_THREAD_ID;
-    var wrappedInteractions = exports.__interactionsRef.current;
-    var subscriber = exports.__subscriberRef.current;
-    if (subscriber !== null) {
-      subscriber.onWorkScheduled(wrappedInteractions, threadID);
-    }
-    wrappedInteractions.forEach(function (interaction) {
-      interaction.__count++;
-    });
-    var hasRun = false;
-    function wrapped() {
-      var prevInteractions = exports.__interactionsRef.current;
-      exports.__interactionsRef.current = wrappedInteractions;
-      subscriber = exports.__subscriberRef.current;
-      try {
-        var returnValue;
-        try {
-          if (subscriber !== null) {
-            subscriber.onWorkStarted(wrappedInteractions, threadID);
-          }
-        } finally {
-          try {
-            returnValue = callback.apply(undefined, arguments);
-          } finally {
-            exports.__interactionsRef.current = prevInteractions;
-            if (subscriber !== null) {
-              subscriber.onWorkStopped(wrappedInteractions, threadID);
-            }
-          }
-        }
-        return returnValue;
-      } finally {
-        if (!hasRun) {
-          hasRun = true;
-          wrappedInteractions.forEach(function (interaction) {
-            interaction.__count--;
-            if (subscriber !== null && interaction.__count === 0) {
-              subscriber.onInteractionScheduledWorkCompleted(interaction);
-            }
-          });
-        }
-      }
-    }
-    wrapped.cancel = function cancel() {
-      subscriber = exports.__subscriberRef.current;
-      try {
-        if (subscriber !== null) {
-          subscriber.onWorkCanceled(wrappedInteractions, threadID);
-        }
-      } finally {
-        wrappedInteractions.forEach(function (interaction) {
-          interaction.__count--;
-          if (subscriber && interaction.__count === 0) {
-            subscriber.onInteractionScheduledWorkCompleted(interaction);
-          }
-        });
-      }
-    };
-    return wrapped;
-  }
-  var subscribers = null;
-  {
-    subscribers = new Set();
-  }
-  function unstable_subscribe(subscriber) {
-    {
-      subscribers.add(subscriber);
-      if (subscribers.size === 1) {
-        exports.__subscriberRef.current = {
-          onInteractionScheduledWorkCompleted: onInteractionScheduledWorkCompleted,
-          onInteractionTraced: onInteractionTraced,
-          onWorkCanceled: onWorkCanceled,
-          onWorkScheduled: onWorkScheduled,
-          onWorkStarted: onWorkStarted,
-          onWorkStopped: onWorkStopped
-        };
-      }
-    }
-  }
-  function unstable_unsubscribe(subscriber) {
-    {
-      subscribers.delete(subscriber);
-      if (subscribers.size === 0) {
-        exports.__subscriberRef.current = null;
-      }
-    }
-  }
-  function onInteractionTraced(interaction) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onInteractionTraced(interaction);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onInteractionScheduledWorkCompleted(interaction) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onInteractionScheduledWorkCompleted(interaction);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkScheduled(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkScheduled(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkStarted(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkStarted(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkStopped(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkStopped(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkCanceled(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkCanceled(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  exports.unstable_clear = unstable_clear;
-  exports.unstable_getCurrent = unstable_getCurrent;
-  exports.unstable_getThreadID = unstable_getThreadID;
-  exports.unstable_subscribe = unstable_subscribe;
-  exports.unstable_trace = unstable_trace;
-  exports.unstable_unsubscribe = unstable_unsubscribe;
-  exports.unstable_wrap = unstable_wrap;
-})();
-
-},
-
 // node_modules/react-dom/index.js @5
 5: function(__fusereq, exports, module){
 'use strict';
@@ -2782,19 +2782,19 @@ function checkDCE() {
     console.error(err);
   }
 }
-module.exports = __fusereq(9);
+module.exports = __fusereq(8);
 
 },
 
-// node_modules/react-dom/cjs/react-dom.development.js @9
-9: function(__fusereq, exports, module){
+// node_modules/react-dom/cjs/react-dom.development.js @8
+8: function(__fusereq, exports, module){
 'use strict';
 (function () {
   'use strict';
   var React = __fusereq(4);
-  var _assign = __fusereq(14);
+  var _assign = __fusereq(15);
   var Scheduler = __fusereq(17);
-  var checkPropTypes = __fusereq(15);
+  var checkPropTypes = __fusereq(16);
   var tracing = __fusereq(18);
   var ReactSharedInternals = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   if (!ReactSharedInternals.hasOwnProperty('ReactCurrentDispatcher')) {

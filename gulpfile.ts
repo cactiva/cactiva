@@ -88,8 +88,19 @@ const prepare_vscode_source = async (next: any) => {
 
 const patch_vscode_source = async (next: any) => {
   if (fs.existsSync("./vscode") && fs.existsSync("./vscode-patch")) {
-    await run("cp -r vscode-patch vscode");
+    await fs.copy("vscode-patch", "vscode");
   }
+
+  if (
+    fs.existsSync("./vscode/src/vs/editor/browser/widget/cactiva") &&
+    fs.existsSync("./vscode/out/vs/editor/browser/widget/cactiva")
+  ) {
+    await fs.copy(
+      "vscode/src/vs/editor/browser/widget/cactiva",
+      "vscode/out/vs/editor/browser/widget/cactiva"
+    );
+  }
+
   next();
 };
 
@@ -151,6 +162,7 @@ async function run_patcher() {
       if (event === "unlink") {
         fs.remove(target);
       } else if (event === "change") {
+        console.log(target);
         fs.copy(path, target);
       }
     });

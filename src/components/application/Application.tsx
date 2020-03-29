@@ -6,7 +6,7 @@ export function Application() {
   return (
     <div className="Application">
       <div className="welcome">
-        coba coba
+        halo rul
       </div>
       <Details />
     </div>

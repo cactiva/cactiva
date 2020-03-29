@@ -43,6 +43,13 @@ const prepare_vscode_source = async (next: any) => {
   next();
 };
 
+const patch_vscode_source = async (next: any) => {
+  if (fs.existsSync("./vscode") && fs.existsSync("./vscode-patch")) {
+    await run("cp -r vscode-patch/* vscode");
+  }
+  next();
+};
+
 const yarn_vscode_source = async (next: any) => {
   if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/node_modules")) {
     await run("yarn --non-interactive", "vscode");
@@ -126,6 +133,7 @@ task(
   series(
     download_node_v10,
     prepare_vscode_source,
+    patch_vscode_source,
     yarn_vscode_source,
     "compile",
     "start"

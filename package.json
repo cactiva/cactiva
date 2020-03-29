@@ -17,7 +17,8 @@
     "nvexeca": "^2.1.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
-    "react-hot-ts": "^0.7.3"
+    "react-hot-ts": "^0.7.3",
+    "which": "^2.0.2"
   },
   "devDependencies": {
     "@types/fs-extra": "^8.1.0",

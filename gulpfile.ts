@@ -2,6 +2,8 @@ import chokidar from "chokidar";
 import fs from "fs-extra";
 import { parallel, series, task } from "gulp";
 import nvexeca from "nvexeca";
+import which from "which";
+import path from "path";
 
 const run = async (
   commands: string,
@@ -26,8 +28,10 @@ const run = async (
   }
 };
 
+const yarn = path.resolve("vscode-yarn/node_modules/yarn/bin/yarn.js");
+
 const download_node_v10 = async (next: any) => {
-  await nvexeca("10", "node", ["--version"], { dry: true });
+  await nvexeca("10", "node", ["--version"], { dry: true, process: "inline" });
   next();
 };
 
@@ -50,14 +54,14 @@ const patch_vscode_source = async (next: any) => {
 
 const yarn_vscode_source = async (next: any) => {
   if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/node_modules")) {
-    await run("yarn --non-interactive", "vscode");
+    await run(`node ${yarn} --non-interactive`, "vscode");
   }
   next();
 };
 
 const compile_vscode = async (next: any) => {
   if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/out")) {
-    await run("yarn compile", "vscode");
+    await run(`node ${yarn} compile`, "vscode");
   }
   next();
 };
@@ -67,7 +71,7 @@ const force_compile_vscode = async (next: any) => {
     if (fs.existsSync("./vscode/out")) {
       fs.removeSync("./vscode/out");
     }
-    await run("yarn compile", "vscode");
+    await run(`node ${yarn} compile`, "vscode");
     next();
   }
 };

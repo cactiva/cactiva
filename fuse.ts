@@ -1,6 +1,5 @@
-import * as fs from "fs";
 import { fusebox, sparky } from "fuse-box";
-
+import * as fs from "fs-extra";
 class Context {
   getConfig = () =>
     fusebox({
@@ -14,7 +13,7 @@ class Context {
         }
       },
       cache: true
-    });  
+    });
 }
 const { task } = sparky<Context>(Context);
 
@@ -22,13 +21,13 @@ task("default", async ctx => {
   const fuse = ctx.getConfig();
   const response = await fuse.runDev({
     bundles: {
-      distRoot: "./vscode/src/vs/editor/browser/widget/cactiva",
+      distRoot: "./vscode-patch/src/vs/editor/browser/widget/cactiva",
       app: "cactiva-app.js"
     }
   });
 
   response.onWatch(() => {
-    const appDir = "./vscode/src/vs/editor/browser/widget/cactiva/";
+    const appDir = "./vscode-patch/src/vs/editor/browser/widget/cactiva/";
     fs.readFile(appDir + "cactiva-app.js", "utf8", function(err, data) {
       if (err) {
         return console.log(err);
@@ -37,7 +36,6 @@ task("default", async ctx => {
         "__fuse.bundle({",
         `
 			define(["require", "exports"], function(require, exports) {
-
 				Object.defineProperty(exports, "__esModule", { value: true });
 				exports.default = __fuse.c[1].m.exports;
 			});
@@ -56,5 +54,9 @@ task("default", async ctx => {
         }
       );
     });
+    fs.copy(
+      "./vscode-patch/src/vs/editor/browser/widget/cactiva/",
+      "./vscode/src/vs/editor/browser/widget/cactiva/"
+    );
   });
 });

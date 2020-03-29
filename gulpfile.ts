@@ -1,6 +1,6 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
-import { series, task } from "gulp";
+import { parallel, series, task } from "gulp";
 import nvexeca from "nvexeca";
 import execa from "execa";
 import ora from "ora";
@@ -181,7 +181,6 @@ async function run_fusebox() {
 run_fusebox.displayName = "run_fusebox";
 
 async function start(next: any) {
-  run_fusebox();
   run_patcher();
   run_vscode();
   next();
@@ -196,12 +195,15 @@ task("force_compile", series(force_compile_vscode));
 
 task(
   "default",
-  series(
-    download_node_v10,
-    prepare_vscode_source,
-    patch_vscode_source,
-    yarn_vscode_source,
-    "compile",
-    start
+  parallel(
+    run_fusebox,
+    series(
+      download_node_v10,
+      prepare_vscode_source,
+      patch_vscode_source,
+      yarn_vscode_source,
+      "compile",
+      start
+    )
   )
 );

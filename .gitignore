@@ -16,3 +16,4 @@ sourcemaps.js.map
 vscode
 share
 .cache
+yarn-error.log

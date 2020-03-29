@@ -1,0 +1,16 @@
+{
+  "systemParams": "linux-x64-79",
+  "modulesFolders": [
+    "node_modules"
+  ],
+  "flags": [],
+  "linkedModules": [],
+  "topLevelPatterns": [
+    "yarn@^1.22.4"
+  ],
+  "lockfileEntries": {
+    "yarn@^1.22.4": "https://registry.yarnpkg.com/yarn/-/yarn-1.22.4.tgz#01c1197ca5b27f21edc8bc472cd4c8ce0e5a470e"
+  },
+  "files": [],
+  "artifacts": {}
+}

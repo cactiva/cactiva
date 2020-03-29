@@ -28,7 +28,7 @@ const run = async (
   }
 };
 
-const yarn = path.resolve("vscode-yarn/node_modules/yarn/bin/yarn.js");
+const yarn = path.resolve("vscode-yarn/yarn/bin/yarn.js");
 
 const download_node_v10 = async (next: any) => {
   await nvexeca("10", "node", ["--version"], { dry: true, process: "inline" });

@@ -1,8 +1,8 @@
-# Fusebox and react without Babel
+# Cactiva 
 
 
 ```
-npm install
-npm start
+yarn
+yarn dev
 ```
 

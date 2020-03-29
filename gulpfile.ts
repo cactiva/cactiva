@@ -1,9 +1,7 @@
-import { series, task } from "gulp";
-import fs from "fs-extra";
-import nvexeca from "nvexeca";
-import { parallel } from "./vscode/build/lib/task";
 import chokidar from "chokidar";
-import klaw from "klaw";
+import fs from "fs-extra";
+import { parallel, series, task } from "gulp";
+import nvexeca from "nvexeca";
 
 const run = async (
   commands: string,

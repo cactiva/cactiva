@@ -145,20 +145,6 @@ async function watch_vscode(next: any) {
   });
 }
 run_vscode.displayName = "run_vscode";
-async function prepare_fusebox() {
-  const cmd = execa("ts-node", ["-T", "fuse"], {
-    all: true
-  });
-
-  if (cmd && cmd.all) {
-    cmd.all.on("data", (e: any) => {
-      if (e.toString("utf8").indexOf("localhost:4444") >= 0) {
-        cmd.kill();
-        console.log("Cactiva App Compiled.");
-      }
-    });
-  }
-}
 
 async function run_patcher() {
   chokidar
@@ -211,14 +197,11 @@ task("force_compile", series(force_compile_vscode));
 task(
   "default",
   parallel(
-    prepare_fusebox,
-    series(
-      download_node_v10,
-      prepare_vscode_source,
-      patch_vscode_source,
-      yarn_vscode_source,
-      "compile",
-      start
-    )
+    download_node_v10,
+    prepare_vscode_source,
+    patch_vscode_source,
+    yarn_vscode_source,
+    "compile",
+    start
   )
 );

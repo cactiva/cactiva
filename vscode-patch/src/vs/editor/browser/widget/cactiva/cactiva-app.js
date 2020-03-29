@@ -32,36 +32,6 @@ f.modules = modules;
 			});
 			__fuse.bundle({
 
-// src/index.tsx @1
-1: function(__fusereq, exports, module){
-window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-  supportsFiber: true,
-  inject: function () {},
-  onCommitFiberRoot: function () {},
-  onCommitFiberUnmount: function () {}
-};
-function render(dom) {
-  window.cactivaCanvasDom = dom;
-  doRender();
-}
-exports.render = render;
-const doRender = async () => {
-  const React = await Promise.resolve().then(() => __fusereq(4));
-  const ReactDOM = await Promise.resolve().then(() => __fusereq(5));
-  const {Application} = await Promise.resolve().then(() => __fusereq(6));
-  const dom = window.cactivaCanvasDom;
-  if (dom) {
-    if (window.lastReactDOM) {
-      window.lastReactDOM.unmountComponentAtNode(dom);
-    }
-    window.lastReactDOM = ReactDOM;
-    ReactDOM.render(React.createElement(Application), dom);
-  }
-};
-doRender();
-
-},
-
 // src/hmr.ts @2
 2: function(__fusereq, exports, module){
 exports.__esModule = true;
@@ -78,6 +48,270 @@ function __DefaultExport__(payload, helper) {
   }
 }
 exports.default = __DefaultExport__;
+
+},
+
+// node_modules/fuse-box/modules/fuse-box-websocket/index.js @7
+7: function(__fusereq, exports, module){
+const events = __fusereq(13);
+function log(text) {
+  console.info(`%c${text}`, 'color: #237abe');
+}
+class SocketClient {
+  constructor(opts) {
+    opts = opts || ({});
+    const port = opts.port || window.location.port;
+    const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const domain = location.hostname || 'localhost';
+    if (opts.connectionURL) {
+      this.url = opts.connectionURL;
+    } else {
+      if (opts.useCurrentURL) {
+        this.url = protocol + location.hostname + (location.port ? ':' + location.port : '');
+      }
+      if (opts.port) {
+        this.url = `${protocol}${domain}:${opts.port}`;
+      }
+    }
+    this.authSent = false;
+    this.emitter = new events.EventEmitter();
+  }
+  reconnect(fn) {
+    setTimeout(() => {
+      this.emitter.emit('reconnect', {
+        message: 'Trying to reconnect'
+      });
+      this.connect(fn);
+    }, 5000);
+  }
+  on(event, fn) {
+    this.emitter.on(event, fn);
+  }
+  connect(fn) {
+    setTimeout(() => {
+      log(`Connecting to FuseBox HMR at ${this.url}`);
+      this.client = new WebSocket(this.url);
+      this.bindEvents(fn);
+    }, 0);
+  }
+  close() {
+    this.client.close();
+  }
+  send(eventName, data) {
+    if (this.client.readyState === 1) {
+      this.client.send(JSON.stringify({
+        name: eventName,
+        payload: data || ({})
+      }));
+    }
+  }
+  error(data) {
+    this.emitter.emit('error', data);
+  }
+  bindEvents(fn) {
+    this.client.onopen = event => {
+      log('Connection successful');
+      if (fn) {
+        fn(this);
+      }
+    };
+    this.client.onerror = event => {
+      this.error({
+        reason: event.reason,
+        message: 'Socket error'
+      });
+    };
+    this.client.onclose = event => {
+      this.emitter.emit('close', {
+        message: 'Socket closed'
+      });
+      if (event.code !== 1011) {
+        this.reconnect(fn);
+      }
+    };
+    this.client.onmessage = event => {
+      let data = event.data;
+      if (data) {
+        let item = JSON.parse(data);
+        this.emitter.emit(item.name, item.payload);
+      }
+    };
+  }
+}
+exports.SocketClient = SocketClient;
+
+},
+
+// node_modules/fuse-box/modules/events/index.js @13
+13: function(__fusereq, exports, module){
+function EventEmitter() {
+  this._events = this._events || ({});
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+EventEmitter.EventEmitter = EventEmitter;
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+EventEmitter.defaultMaxListeners = 10;
+EventEmitter.prototype.setMaxListeners = function (n) {
+  if (!isNumber(n) || n < 0 || isNaN(n)) throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+EventEmitter.prototype.emit = function (type) {
+  var er, handler, len, args, i, listeners;
+  if (!this._events) this._events = {};
+  if (type === 'error') {
+    if (!this._events.error || isObject(this._events.error) && !this._events.error.length) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er;
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+  handler = this._events[type];
+  if (isUndefined(handler)) return false;
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++) listeners[i].apply(this, args);
+  }
+  return true;
+};
+EventEmitter.prototype.addListener = function (type, listener) {
+  var m;
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  if (!this._events) this._events = {};
+  if (this._events.newListener) this.emit('newListener', type, isFunction(listener.listener) ? listener.listener : listener);
+  if (!this._events[type]) this._events[type] = listener; else if (isObject(this._events[type])) this._events[type].push(listener); else this._events[type] = [this._events[type], listener];
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
+      if (typeof console.trace === 'function') {
+        console.trace();
+      }
+    }
+  }
+  return this;
+};
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+EventEmitter.prototype.once = function (type, listener) {
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  var fired = false;
+  function g() {
+    this.removeListener(type, g);
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+  g.listener = listener;
+  this.on(type, g);
+  return this;
+};
+EventEmitter.prototype.removeListener = function (type, listener) {
+  var list, position, length, i;
+  if (!isFunction(listener)) throw TypeError('listener must be a function');
+  if (!this._events || !this._events[type]) return this;
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+  if (list === listener || isFunction(list.listener) && list.listener === listener) {
+    delete this._events[type];
+    if (this._events.removeListener) this.emit('removeListener', type, listener);
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0; ) {
+      if (list[i] === listener || list[i].listener && list[i].listener === listener) {
+        position = i;
+        break;
+      }
+    }
+    if (position < 0) return this;
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+    if (this._events.removeListener) this.emit('removeListener', type, listener);
+  }
+  return this;
+};
+EventEmitter.prototype.removeAllListeners = function (type) {
+  var key, listeners;
+  if (!this._events) return this;
+  if (!this._events.removeListener) {
+    if (arguments.length === 0) this._events = {}; else if (this._events[type]) delete this._events[type];
+    return this;
+  }
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+  listeners = this._events[type];
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    while (listeners.length) this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+  return this;
+};
+EventEmitter.prototype.listeners = function (type) {
+  var ret;
+  if (!this._events || !this._events[type]) ret = []; else if (isFunction(this._events[type])) ret = [this._events[type]]; else ret = this._events[type].slice();
+  return ret;
+};
+EventEmitter.prototype.listenerCount = function (type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+    if (isFunction(evlistener)) return 1; else if (evlistener) return evlistener.length;
+  }
+  return 0;
+};
+EventEmitter.listenerCount = function (emitter, type) {
+  return emitter.listenerCount(type);
+};
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+function isUndefined(arg) {
+  return arg === void 0;
+}
 
 },
 
@@ -176,136 +410,135 @@ exports.connect = opts => {
 
 },
 
+// node_modules/object-assign/index.js @14
+14: function(__fusereq, exports, module){
+'use strict';
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+function toObject(val) {
+  if (val === null || val === undefined) {
+    throw new TypeError('Object.assign cannot be called with null or undefined');
+  }
+  return Object(val);
+}
+function shouldUseNative() {
+  try {
+    if (!Object.assign) {
+      return false;
+    }
+    var test1 = new String('abc');
+    test1[5] = 'de';
+    if (Object.getOwnPropertyNames(test1)[0] === '5') {
+      return false;
+    }
+    var test2 = {};
+    for (var i = 0; i < 10; i++) {
+      test2['_' + String.fromCharCode(i)] = i;
+    }
+    var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+      return test2[n];
+    });
+    if (order2.join('') !== '0123456789') {
+      return false;
+    }
+    var test3 = {};
+    ('abcdefghijklmnopqrst').split('').forEach(function (letter) {
+      test3[letter] = letter;
+    });
+    if (Object.keys(Object.assign({}, test3)).join('') !== 'abcdefghijklmnopqrst') {
+      return false;
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+module.exports = shouldUseNative() ? Object.assign : function (target, source) {
+  var from;
+  var to = toObject(target);
+  var symbols;
+  for (var s = 1; s < arguments.length; s++) {
+    from = Object(arguments[s]);
+    for (var key in from) {
+      if (hasOwnProperty.call(from, key)) {
+        to[key] = from[key];
+      }
+    }
+    if (getOwnPropertySymbols) {
+      symbols = getOwnPropertySymbols(from);
+      for (var i = 0; i < symbols.length; i++) {
+        if (propIsEnumerable.call(from, symbols[i])) {
+          to[symbols[i]] = from[symbols[i]];
+        }
+      }
+    }
+  }
+  return to;
+};
+
+},
+
+// node_modules/prop-types/checkPropTypes.js @15
+15: function(__fusereq, exports, module){
+'use strict';
+var printWarning = function () {};
+var ReactPropTypesSecret = __fusereq(19);
+var loggedTypeFailures = {};
+var has = Function.call.bind(Object.prototype.hasOwnProperty);
+printWarning = function (text) {
+  var message = 'Warning: ' + text;
+  if (typeof console !== 'undefined') {
+    console.error(message);
+  }
+  try {
+    throw new Error(message);
+  } catch (x) {}
+};
+function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
+  for (var typeSpecName in typeSpecs) {
+    if (has(typeSpecs, typeSpecName)) {
+      var error;
+      try {
+        if (typeof typeSpecs[typeSpecName] !== 'function') {
+          var err = Error((componentName || 'React class') + ': ' + location + ' type `' + typeSpecName + '` is invalid; ' + 'it must be a function, usually from the `prop-types` package, but received `' + typeof typeSpecs[typeSpecName] + '`.');
+          err.name = 'Invariant Violation';
+          throw err;
+        }
+        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
+      } catch (ex) {
+        error = ex;
+      }
+      if (error && !(error instanceof Error)) {
+        printWarning((componentName || 'React class') + ': type specification of ' + location + ' `' + typeSpecName + '` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a ' + typeof error + '. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).');
+      }
+      if (error instanceof Error && !((error.message in loggedTypeFailures))) {
+        loggedTypeFailures[error.message] = true;
+        var stack = getStack ? getStack() : '';
+        printWarning('Failed ' + location + ' type: ' + error.message + (stack != null ? stack : ''));
+      }
+    }
+  }
+}
+checkPropTypes.resetWarningCache = function () {
+  loggedTypeFailures = {};
+};
+module.exports = checkPropTypes;
+
+},
+
+// node_modules/prop-types/lib/ReactPropTypesSecret.js @19
+19: function(__fusereq, exports, module){
+'use strict';
+var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
+module.exports = ReactPropTypesSecret;
+
+},
+
 // node_modules/react/index.js @4
 4: function(__fusereq, exports, module){
 'use strict';
 module.exports = __fusereq(8);
-
-},
-
-// node_modules/react-dom/index.js @5
-5: function(__fusereq, exports, module){
-'use strict';
-function checkDCE() {
-  if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function') {
-    return;
-  }
-  throw new Error('^_^');
-  try {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE(checkDCE);
-  } catch (err) {
-    console.error(err);
-  }
-}
-module.exports = __fusereq(9);
-
-},
-
-// src/components/application/Application.tsx @6
-6: function(__fusereq, exports, module){
-exports.__esModule = true;
-var react_1 = __fusereq(4);
-var Details_1 = __fusereq(10);
-__fusereq(11);
-function Application() {
-  return react_1.createElement("div", {
-    className: "Application"
-  }, react_1.createElement("div", {
-    className: "welcome"
-  }, "\n        halo rul, mantab\n      "), react_1.createElement(Details_1.Details, null));
-}
-exports.Application = Application;
-
-},
-
-// node_modules/fuse-box/modules/fuse-box-websocket/index.js @7
-7: function(__fusereq, exports, module){
-const events = __fusereq(13);
-function log(text) {
-  console.info(`%c${text}`, 'color: #237abe');
-}
-class SocketClient {
-  constructor(opts) {
-    opts = opts || ({});
-    const port = opts.port || window.location.port;
-    const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const domain = location.hostname || 'localhost';
-    if (opts.connectionURL) {
-      this.url = opts.connectionURL;
-    } else {
-      if (opts.useCurrentURL) {
-        this.url = protocol + location.hostname + (location.port ? ':' + location.port : '');
-      }
-      if (opts.port) {
-        this.url = `${protocol}${domain}:${opts.port}`;
-      }
-    }
-    this.authSent = false;
-    this.emitter = new events.EventEmitter();
-  }
-  reconnect(fn) {
-    setTimeout(() => {
-      this.emitter.emit('reconnect', {
-        message: 'Trying to reconnect'
-      });
-      this.connect(fn);
-    }, 5000);
-  }
-  on(event, fn) {
-    this.emitter.on(event, fn);
-  }
-  connect(fn) {
-    setTimeout(() => {
-      log(`Connecting to FuseBox HMR at ${this.url}`);
-      this.client = new WebSocket(this.url);
-      this.bindEvents(fn);
-    }, 0);
-  }
-  close() {
-    this.client.close();
-  }
-  send(eventName, data) {
-    if (this.client.readyState === 1) {
-      this.client.send(JSON.stringify({
-        name: eventName,
-        payload: data || ({})
-      }));
-    }
-  }
-  error(data) {
-    this.emitter.emit('error', data);
-  }
-  bindEvents(fn) {
-    this.client.onopen = event => {
-      log('Connection successful');
-      if (fn) {
-        fn(this);
-      }
-    };
-    this.client.onerror = event => {
-      this.error({
-        reason: event.reason,
-        message: 'Socket error'
-      });
-    };
-    this.client.onclose = event => {
-      this.emitter.emit('close', {
-        message: 'Socket closed'
-      });
-      if (event.code !== 1011) {
-        this.reconnect(fn);
-      }
-    };
-    this.client.onmessage = event => {
-      let data = event.data;
-      if (data) {
-        let item = JSON.parse(data);
-        this.emitter.emit(item.name, item.payload);
-      }
-    };
-  }
-}
-exports.SocketClient = SocketClient;
 
 },
 
@@ -1513,6 +1746,1043 @@ exports.SocketClient = SocketClient;
   exports.useState = useState;
   exports.version = ReactVersion;
 })();
+
+},
+
+// node_modules/fuse-box/modules/fuse-box-css/index.js @12
+12: function(__fusereq, exports, module){
+var cssHandler = function (__filename, contents) {
+  var styleId = __filename.replace(/[\.\/]+/g, '-');
+  if (styleId.charAt(0) === '-') styleId = styleId.substring(1);
+  var exists = document.getElementById(styleId);
+  if (!exists) {
+    var s = document.createElement(contents ? 'style' : 'link');
+    s.id = styleId;
+    s.type = 'text/css';
+    if (contents) {
+      s.innerHTML = contents;
+    } else {
+      s.rel = 'stylesheet';
+      s.href = __filename;
+    }
+    document.getElementsByTagName('head')[0].appendChild(s);
+  } else {
+    if (contents) exists.innerHTML = contents;
+  }
+};
+module.exports = cssHandler;
+
+},
+
+// src/components/application/Application.scss @11
+11: function(__fusereq, exports, module){
+__fusereq(12)("src/components/application/Application.scss",".Application {\n  display: flex;\n  background: red;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Application .logo {\n    margin-top: 20px;\n    width: 120px;\n    height: 120px;\n    background-size: contain;\n    background-repeat: no-repeat; }\n  .Application .welcome {\n    margin-top: 20px;\n    font-size: 50px; }\n")
+},
+
+// src/components/details/Details.scss @16
+16: function(__fusereq, exports, module){
+__fusereq(12)("src/components/details/Details.scss",".Details {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Details .repo-link {\n    padding: 20px; }\n  .Details .try-updating {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-weight: bold; }\n  .Details .hint {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-size: 14px;\n    background-color: #f0f0f0;\n    border-radius: 5px; }\n  .Details .fork {\n    margin-top: 40px;\n    font-size: 15px; }\n")
+},
+
+// src/components/details/Details.tsx @10
+10: function(__fusereq, exports, module){
+exports.__esModule = true;
+var react_1 = __fusereq(4);
+__fusereq(16);
+function Details() {
+  return react_1.createElement("div", {
+    className: "Details"
+  }, react_1.createElement("div", {
+    className: "repo-link"
+  }, react_1.createElement("a", {
+    href: "https://github.com/fuse-box/react-example",
+    target: "_blank"
+  }, "\n          https://github.com/fuse-box/react-example\n        ")), react_1.createElement("div", {
+    className: "try-updating"
+  }, "\n        Try changing any of the components, You will get an isntant update\n        without a page refresh\n      "), react_1.createElement("div", {
+    className: "hint"
+  }, "\n        Did you know that it doesn't matter how many components you have 5 or\n        5000, FuseBox is smart at detecting the changes you make. You will get\n        an instant update guaranteed!\n      "), react_1.createElement("div", {
+    className: "fork"
+  }, "\n        Fork this", " ", react_1.createElement("a", {
+    href: "https://codesandbox.io/s/github/fuse-box/react-example"
+  }, "\n          sandbox\n        "), " ", "\n        and share the link with your friends and watch you code live!\n      "));
+}
+exports.Details = Details;
+
+},
+
+// src/components/application/Application.tsx @6
+6: function(__fusereq, exports, module){
+exports.__esModule = true;
+var react_1 = __fusereq(4);
+var Details_1 = __fusereq(10);
+__fusereq(11);
+function Application() {
+  return react_1.createElement("div", {
+    className: "Application"
+  }, react_1.createElement("div", {
+    className: "welcome"
+  }, "\n        halo rul, mantab\n      "), react_1.createElement(Details_1.Details, null));
+}
+exports.Application = Application;
+
+},
+
+// node_modules/scheduler/index.js @17
+17: function(__fusereq, exports, module){
+'use strict';
+module.exports = __fusereq(20);
+
+},
+
+// node_modules/scheduler/tracing.js @18
+18: function(__fusereq, exports, module){
+'use strict';
+module.exports = __fusereq(21);
+
+},
+
+// node_modules/scheduler/cjs/scheduler.development.js @20
+20: function(__fusereq, exports, module){
+'use strict';
+(function () {
+  'use strict';
+  var enableSchedulerDebugging = false;
+  var enableProfiling = true;
+  var requestHostCallback;
+  var requestHostTimeout;
+  var cancelHostTimeout;
+  var shouldYieldToHost;
+  var requestPaint;
+  if (typeof window === 'undefined' || typeof MessageChannel !== 'function') {
+    var _callback = null;
+    var _timeoutID = null;
+    var _flushCallback = function () {
+      if (_callback !== null) {
+        try {
+          var currentTime = exports.unstable_now();
+          var hasRemainingTime = true;
+          _callback(hasRemainingTime, currentTime);
+          _callback = null;
+        } catch (e) {
+          setTimeout(_flushCallback, 0);
+          throw e;
+        }
+      }
+    };
+    var initialTime = Date.now();
+    exports.unstable_now = function () {
+      return Date.now() - initialTime;
+    };
+    requestHostCallback = function (cb) {
+      if (_callback !== null) {
+        setTimeout(requestHostCallback, 0, cb);
+      } else {
+        _callback = cb;
+        setTimeout(_flushCallback, 0);
+      }
+    };
+    requestHostTimeout = function (cb, ms) {
+      _timeoutID = setTimeout(cb, ms);
+    };
+    cancelHostTimeout = function () {
+      clearTimeout(_timeoutID);
+    };
+    shouldYieldToHost = function () {
+      return false;
+    };
+    requestPaint = exports.unstable_forceFrameRate = function () {};
+  } else {
+    var performance = window.performance;
+    var _Date = window.Date;
+    var _setTimeout = window.setTimeout;
+    var _clearTimeout = window.clearTimeout;
+    if (typeof console !== 'undefined') {
+      var requestAnimationFrame = window.requestAnimationFrame;
+      var cancelAnimationFrame = window.cancelAnimationFrame;
+      if (typeof requestAnimationFrame !== 'function') {
+        console['error']("This browser doesn't support requestAnimationFrame. " + 'Make sure that you load a ' + 'polyfill in older browsers. https://fb.me/react-polyfills');
+      }
+      if (typeof cancelAnimationFrame !== 'function') {
+        console['error']("This browser doesn't support cancelAnimationFrame. " + 'Make sure that you load a ' + 'polyfill in older browsers. https://fb.me/react-polyfills');
+      }
+    }
+    if (typeof performance === 'object' && typeof performance.now === 'function') {
+      exports.unstable_now = function () {
+        return performance.now();
+      };
+    } else {
+      var _initialTime = _Date.now();
+      exports.unstable_now = function () {
+        return _Date.now() - _initialTime;
+      };
+    }
+    var isMessageLoopRunning = false;
+    var scheduledHostCallback = null;
+    var taskTimeoutID = -1;
+    var yieldInterval = 5;
+    var deadline = 0;
+    {
+      shouldYieldToHost = function () {
+        return exports.unstable_now() >= deadline;
+      };
+      requestPaint = function () {};
+    }
+    exports.unstable_forceFrameRate = function (fps) {
+      if (fps < 0 || fps > 125) {
+        console['error']('forceFrameRate takes a positive int between 0 and 125, ' + 'forcing framerates higher than 125 fps is not unsupported');
+        return;
+      }
+      if (fps > 0) {
+        yieldInterval = Math.floor(1000 / fps);
+      } else {
+        yieldInterval = 5;
+      }
+    };
+    var performWorkUntilDeadline = function () {
+      if (scheduledHostCallback !== null) {
+        var currentTime = exports.unstable_now();
+        deadline = currentTime + yieldInterval;
+        var hasTimeRemaining = true;
+        try {
+          var hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
+          if (!hasMoreWork) {
+            isMessageLoopRunning = false;
+            scheduledHostCallback = null;
+          } else {
+            port.postMessage(null);
+          }
+        } catch (error) {
+          port.postMessage(null);
+          throw error;
+        }
+      } else {
+        isMessageLoopRunning = false;
+      }
+    };
+    var channel = new MessageChannel();
+    var port = channel.port2;
+    channel.port1.onmessage = performWorkUntilDeadline;
+    requestHostCallback = function (callback) {
+      scheduledHostCallback = callback;
+      if (!isMessageLoopRunning) {
+        isMessageLoopRunning = true;
+        port.postMessage(null);
+      }
+    };
+    requestHostTimeout = function (callback, ms) {
+      taskTimeoutID = _setTimeout(function () {
+        callback(exports.unstable_now());
+      }, ms);
+    };
+    cancelHostTimeout = function () {
+      _clearTimeout(taskTimeoutID);
+      taskTimeoutID = -1;
+    };
+  }
+  function push(heap, node) {
+    var index = heap.length;
+    heap.push(node);
+    siftUp(heap, node, index);
+  }
+  function peek(heap) {
+    var first = heap[0];
+    return first === undefined ? null : first;
+  }
+  function pop(heap) {
+    var first = heap[0];
+    if (first !== undefined) {
+      var last = heap.pop();
+      if (last !== first) {
+        heap[0] = last;
+        siftDown(heap, last, 0);
+      }
+      return first;
+    } else {
+      return null;
+    }
+  }
+  function siftUp(heap, node, i) {
+    var index = i;
+    while (true) {
+      var parentIndex = index - 1 >>> 1;
+      var parent = heap[parentIndex];
+      if (parent !== undefined && compare(parent, node) > 0) {
+        heap[parentIndex] = node;
+        heap[index] = parent;
+        index = parentIndex;
+      } else {
+        return;
+      }
+    }
+  }
+  function siftDown(heap, node, i) {
+    var index = i;
+    var length = heap.length;
+    while (index < length) {
+      var leftIndex = (index + 1) * 2 - 1;
+      var left = heap[leftIndex];
+      var rightIndex = leftIndex + 1;
+      var right = heap[rightIndex];
+      if (left !== undefined && compare(left, node) < 0) {
+        if (right !== undefined && compare(right, left) < 0) {
+          heap[index] = right;
+          heap[rightIndex] = node;
+          index = rightIndex;
+        } else {
+          heap[index] = left;
+          heap[leftIndex] = node;
+          index = leftIndex;
+        }
+      } else if (right !== undefined && compare(right, node) < 0) {
+        heap[index] = right;
+        heap[rightIndex] = node;
+        index = rightIndex;
+      } else {
+        return;
+      }
+    }
+  }
+  function compare(a, b) {
+    var diff = a.sortIndex - b.sortIndex;
+    return diff !== 0 ? diff : a.id - b.id;
+  }
+  var NoPriority = 0;
+  var ImmediatePriority = 1;
+  var UserBlockingPriority = 2;
+  var NormalPriority = 3;
+  var LowPriority = 4;
+  var IdlePriority = 5;
+  var runIdCounter = 0;
+  var mainThreadIdCounter = 0;
+  var profilingStateSize = 4;
+  var sharedProfilingBuffer = typeof SharedArrayBuffer === 'function' ? new SharedArrayBuffer(profilingStateSize * Int32Array.BYTES_PER_ELEMENT) : typeof ArrayBuffer === 'function' ? new ArrayBuffer(profilingStateSize * Int32Array.BYTES_PER_ELEMENT) : null;
+  var profilingState = sharedProfilingBuffer !== null ? new Int32Array(sharedProfilingBuffer) : [];
+  var PRIORITY = 0;
+  var CURRENT_TASK_ID = 1;
+  var CURRENT_RUN_ID = 2;
+  var QUEUE_SIZE = 3;
+  {
+    profilingState[PRIORITY] = NoPriority;
+    profilingState[QUEUE_SIZE] = 0;
+    profilingState[CURRENT_TASK_ID] = 0;
+  }
+  var INITIAL_EVENT_LOG_SIZE = 131072;
+  var MAX_EVENT_LOG_SIZE = 524288;
+  var eventLogSize = 0;
+  var eventLogBuffer = null;
+  var eventLog = null;
+  var eventLogIndex = 0;
+  var TaskStartEvent = 1;
+  var TaskCompleteEvent = 2;
+  var TaskErrorEvent = 3;
+  var TaskCancelEvent = 4;
+  var TaskRunEvent = 5;
+  var TaskYieldEvent = 6;
+  var SchedulerSuspendEvent = 7;
+  var SchedulerResumeEvent = 8;
+  function logEvent(entries) {
+    if (eventLog !== null) {
+      var offset = eventLogIndex;
+      eventLogIndex += entries.length;
+      if (eventLogIndex + 1 > eventLogSize) {
+        eventLogSize *= 2;
+        if (eventLogSize > MAX_EVENT_LOG_SIZE) {
+          console['error']("Scheduler Profiling: Event log exceeded maximum size. Don't " + 'forget to call `stopLoggingProfilingEvents()`.');
+          stopLoggingProfilingEvents();
+          return;
+        }
+        var newEventLog = new Int32Array(eventLogSize * 4);
+        newEventLog.set(eventLog);
+        eventLogBuffer = newEventLog.buffer;
+        eventLog = newEventLog;
+      }
+      eventLog.set(entries, offset);
+    }
+  }
+  function startLoggingProfilingEvents() {
+    eventLogSize = INITIAL_EVENT_LOG_SIZE;
+    eventLogBuffer = new ArrayBuffer(eventLogSize * 4);
+    eventLog = new Int32Array(eventLogBuffer);
+    eventLogIndex = 0;
+  }
+  function stopLoggingProfilingEvents() {
+    var buffer = eventLogBuffer;
+    eventLogSize = 0;
+    eventLogBuffer = null;
+    eventLog = null;
+    eventLogIndex = 0;
+    return buffer;
+  }
+  function markTaskStart(task, ms) {
+    {
+      profilingState[QUEUE_SIZE]++;
+      if (eventLog !== null) {
+        logEvent([TaskStartEvent, ms * 1000, task.id, task.priorityLevel]);
+      }
+    }
+  }
+  function markTaskCompleted(task, ms) {
+    {
+      profilingState[PRIORITY] = NoPriority;
+      profilingState[CURRENT_TASK_ID] = 0;
+      profilingState[QUEUE_SIZE]--;
+      if (eventLog !== null) {
+        logEvent([TaskCompleteEvent, ms * 1000, task.id]);
+      }
+    }
+  }
+  function markTaskCanceled(task, ms) {
+    {
+      profilingState[QUEUE_SIZE]--;
+      if (eventLog !== null) {
+        logEvent([TaskCancelEvent, ms * 1000, task.id]);
+      }
+    }
+  }
+  function markTaskErrored(task, ms) {
+    {
+      profilingState[PRIORITY] = NoPriority;
+      profilingState[CURRENT_TASK_ID] = 0;
+      profilingState[QUEUE_SIZE]--;
+      if (eventLog !== null) {
+        logEvent([TaskErrorEvent, ms * 1000, task.id]);
+      }
+    }
+  }
+  function markTaskRun(task, ms) {
+    {
+      runIdCounter++;
+      profilingState[PRIORITY] = task.priorityLevel;
+      profilingState[CURRENT_TASK_ID] = task.id;
+      profilingState[CURRENT_RUN_ID] = runIdCounter;
+      if (eventLog !== null) {
+        logEvent([TaskRunEvent, ms * 1000, task.id, runIdCounter]);
+      }
+    }
+  }
+  function markTaskYield(task, ms) {
+    {
+      profilingState[PRIORITY] = NoPriority;
+      profilingState[CURRENT_TASK_ID] = 0;
+      profilingState[CURRENT_RUN_ID] = 0;
+      if (eventLog !== null) {
+        logEvent([TaskYieldEvent, ms * 1000, task.id, runIdCounter]);
+      }
+    }
+  }
+  function markSchedulerSuspended(ms) {
+    {
+      mainThreadIdCounter++;
+      if (eventLog !== null) {
+        logEvent([SchedulerSuspendEvent, ms * 1000, mainThreadIdCounter]);
+      }
+    }
+  }
+  function markSchedulerUnsuspended(ms) {
+    {
+      if (eventLog !== null) {
+        logEvent([SchedulerResumeEvent, ms * 1000, mainThreadIdCounter]);
+      }
+    }
+  }
+  var maxSigned31BitInt = 1073741823;
+  var IMMEDIATE_PRIORITY_TIMEOUT = -1;
+  var USER_BLOCKING_PRIORITY = 250;
+  var NORMAL_PRIORITY_TIMEOUT = 5000;
+  var LOW_PRIORITY_TIMEOUT = 10000;
+  var IDLE_PRIORITY = maxSigned31BitInt;
+  var taskQueue = [];
+  var timerQueue = [];
+  var taskIdCounter = 1;
+  var currentTask = null;
+  var currentPriorityLevel = NormalPriority;
+  var isPerformingWork = false;
+  var isHostCallbackScheduled = false;
+  var isHostTimeoutScheduled = false;
+  function advanceTimers(currentTime) {
+    var timer = peek(timerQueue);
+    while (timer !== null) {
+      if (timer.callback === null) {
+        pop(timerQueue);
+      } else if (timer.startTime <= currentTime) {
+        pop(timerQueue);
+        timer.sortIndex = timer.expirationTime;
+        push(taskQueue, timer);
+        {
+          markTaskStart(timer, currentTime);
+          timer.isQueued = true;
+        }
+      } else {
+        return;
+      }
+      timer = peek(timerQueue);
+    }
+  }
+  function handleTimeout(currentTime) {
+    isHostTimeoutScheduled = false;
+    advanceTimers(currentTime);
+    if (!isHostCallbackScheduled) {
+      if (peek(taskQueue) !== null) {
+        isHostCallbackScheduled = true;
+        requestHostCallback(flushWork);
+      } else {
+        var firstTimer = peek(timerQueue);
+        if (firstTimer !== null) {
+          requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
+        }
+      }
+    }
+  }
+  function flushWork(hasTimeRemaining, initialTime) {
+    {
+      markSchedulerUnsuspended(initialTime);
+    }
+    isHostCallbackScheduled = false;
+    if (isHostTimeoutScheduled) {
+      isHostTimeoutScheduled = false;
+      cancelHostTimeout();
+    }
+    isPerformingWork = true;
+    var previousPriorityLevel = currentPriorityLevel;
+    try {
+      if (enableProfiling) {
+        try {
+          return workLoop(hasTimeRemaining, initialTime);
+        } catch (error) {
+          if (currentTask !== null) {
+            var currentTime = exports.unstable_now();
+            markTaskErrored(currentTask, currentTime);
+            currentTask.isQueued = false;
+          }
+          throw error;
+        }
+      } else {
+        return workLoop(hasTimeRemaining, initialTime);
+      }
+    } finally {
+      currentTask = null;
+      currentPriorityLevel = previousPriorityLevel;
+      isPerformingWork = false;
+      {
+        var _currentTime = exports.unstable_now();
+        markSchedulerSuspended(_currentTime);
+      }
+    }
+  }
+  function workLoop(hasTimeRemaining, initialTime) {
+    var currentTime = initialTime;
+    advanceTimers(currentTime);
+    currentTask = peek(taskQueue);
+    while (currentTask !== null && !enableSchedulerDebugging) {
+      if (currentTask.expirationTime > currentTime && (!hasTimeRemaining || shouldYieldToHost())) {
+        break;
+      }
+      var callback = currentTask.callback;
+      if (callback !== null) {
+        currentTask.callback = null;
+        currentPriorityLevel = currentTask.priorityLevel;
+        var didUserCallbackTimeout = currentTask.expirationTime <= currentTime;
+        markTaskRun(currentTask, currentTime);
+        var continuationCallback = callback(didUserCallbackTimeout);
+        currentTime = exports.unstable_now();
+        if (typeof continuationCallback === 'function') {
+          currentTask.callback = continuationCallback;
+          markTaskYield(currentTask, currentTime);
+        } else {
+          {
+            markTaskCompleted(currentTask, currentTime);
+            currentTask.isQueued = false;
+          }
+          if (currentTask === peek(taskQueue)) {
+            pop(taskQueue);
+          }
+        }
+        advanceTimers(currentTime);
+      } else {
+        pop(taskQueue);
+      }
+      currentTask = peek(taskQueue);
+    }
+    if (currentTask !== null) {
+      return true;
+    } else {
+      var firstTimer = peek(timerQueue);
+      if (firstTimer !== null) {
+        requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
+      }
+      return false;
+    }
+  }
+  function unstable_runWithPriority(priorityLevel, eventHandler) {
+    switch (priorityLevel) {
+      case ImmediatePriority:
+      case UserBlockingPriority:
+      case NormalPriority:
+      case LowPriority:
+      case IdlePriority:
+        break;
+      default:
+        priorityLevel = NormalPriority;
+    }
+    var previousPriorityLevel = currentPriorityLevel;
+    currentPriorityLevel = priorityLevel;
+    try {
+      return eventHandler();
+    } finally {
+      currentPriorityLevel = previousPriorityLevel;
+    }
+  }
+  function unstable_next(eventHandler) {
+    var priorityLevel;
+    switch (currentPriorityLevel) {
+      case ImmediatePriority:
+      case UserBlockingPriority:
+      case NormalPriority:
+        priorityLevel = NormalPriority;
+        break;
+      default:
+        priorityLevel = currentPriorityLevel;
+        break;
+    }
+    var previousPriorityLevel = currentPriorityLevel;
+    currentPriorityLevel = priorityLevel;
+    try {
+      return eventHandler();
+    } finally {
+      currentPriorityLevel = previousPriorityLevel;
+    }
+  }
+  function unstable_wrapCallback(callback) {
+    var parentPriorityLevel = currentPriorityLevel;
+    return function () {
+      var previousPriorityLevel = currentPriorityLevel;
+      currentPriorityLevel = parentPriorityLevel;
+      try {
+        return callback.apply(this, arguments);
+      } finally {
+        currentPriorityLevel = previousPriorityLevel;
+      }
+    };
+  }
+  function timeoutForPriorityLevel(priorityLevel) {
+    switch (priorityLevel) {
+      case ImmediatePriority:
+        return IMMEDIATE_PRIORITY_TIMEOUT;
+      case UserBlockingPriority:
+        return USER_BLOCKING_PRIORITY;
+      case IdlePriority:
+        return IDLE_PRIORITY;
+      case LowPriority:
+        return LOW_PRIORITY_TIMEOUT;
+      case NormalPriority:
+      default:
+        return NORMAL_PRIORITY_TIMEOUT;
+    }
+  }
+  function unstable_scheduleCallback(priorityLevel, callback, options) {
+    var currentTime = exports.unstable_now();
+    var startTime;
+    var timeout;
+    if (typeof options === 'object' && options !== null) {
+      var delay = options.delay;
+      if (typeof delay === 'number' && delay > 0) {
+        startTime = currentTime + delay;
+      } else {
+        startTime = currentTime;
+      }
+      timeout = typeof options.timeout === 'number' ? options.timeout : timeoutForPriorityLevel(priorityLevel);
+    } else {
+      timeout = timeoutForPriorityLevel(priorityLevel);
+      startTime = currentTime;
+    }
+    var expirationTime = startTime + timeout;
+    var newTask = {
+      id: taskIdCounter++,
+      callback: callback,
+      priorityLevel: priorityLevel,
+      startTime: startTime,
+      expirationTime: expirationTime,
+      sortIndex: -1
+    };
+    {
+      newTask.isQueued = false;
+    }
+    if (startTime > currentTime) {
+      newTask.sortIndex = startTime;
+      push(timerQueue, newTask);
+      if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
+        if (isHostTimeoutScheduled) {
+          cancelHostTimeout();
+        } else {
+          isHostTimeoutScheduled = true;
+        }
+        requestHostTimeout(handleTimeout, startTime - currentTime);
+      }
+    } else {
+      newTask.sortIndex = expirationTime;
+      push(taskQueue, newTask);
+      {
+        markTaskStart(newTask, currentTime);
+        newTask.isQueued = true;
+      }
+      if (!isHostCallbackScheduled && !isPerformingWork) {
+        isHostCallbackScheduled = true;
+        requestHostCallback(flushWork);
+      }
+    }
+    return newTask;
+  }
+  function unstable_pauseExecution() {}
+  function unstable_continueExecution() {
+    if (!isHostCallbackScheduled && !isPerformingWork) {
+      isHostCallbackScheduled = true;
+      requestHostCallback(flushWork);
+    }
+  }
+  function unstable_getFirstCallbackNode() {
+    return peek(taskQueue);
+  }
+  function unstable_cancelCallback(task) {
+    {
+      if (task.isQueued) {
+        var currentTime = exports.unstable_now();
+        markTaskCanceled(task, currentTime);
+        task.isQueued = false;
+      }
+    }
+    task.callback = null;
+  }
+  function unstable_getCurrentPriorityLevel() {
+    return currentPriorityLevel;
+  }
+  function unstable_shouldYield() {
+    var currentTime = exports.unstable_now();
+    advanceTimers(currentTime);
+    var firstTask = peek(taskQueue);
+    return firstTask !== currentTask && currentTask !== null && firstTask !== null && firstTask.callback !== null && firstTask.startTime <= currentTime && firstTask.expirationTime < currentTask.expirationTime || shouldYieldToHost();
+  }
+  var unstable_requestPaint = requestPaint;
+  var unstable_Profiling = {
+    startLoggingProfilingEvents: startLoggingProfilingEvents,
+    stopLoggingProfilingEvents: stopLoggingProfilingEvents,
+    sharedProfilingBuffer: sharedProfilingBuffer
+  };
+  exports.unstable_IdlePriority = IdlePriority;
+  exports.unstable_ImmediatePriority = ImmediatePriority;
+  exports.unstable_LowPriority = LowPriority;
+  exports.unstable_NormalPriority = NormalPriority;
+  exports.unstable_Profiling = unstable_Profiling;
+  exports.unstable_UserBlockingPriority = UserBlockingPriority;
+  exports.unstable_cancelCallback = unstable_cancelCallback;
+  exports.unstable_continueExecution = unstable_continueExecution;
+  exports.unstable_getCurrentPriorityLevel = unstable_getCurrentPriorityLevel;
+  exports.unstable_getFirstCallbackNode = unstable_getFirstCallbackNode;
+  exports.unstable_next = unstable_next;
+  exports.unstable_pauseExecution = unstable_pauseExecution;
+  exports.unstable_requestPaint = unstable_requestPaint;
+  exports.unstable_runWithPriority = unstable_runWithPriority;
+  exports.unstable_scheduleCallback = unstable_scheduleCallback;
+  exports.unstable_shouldYield = unstable_shouldYield;
+  exports.unstable_wrapCallback = unstable_wrapCallback;
+})();
+
+},
+
+// node_modules/scheduler/cjs/scheduler-tracing.development.js @21
+21: function(__fusereq, exports, module){
+'use strict';
+(function () {
+  'use strict';
+  var DEFAULT_THREAD_ID = 0;
+  var interactionIDCounter = 0;
+  var threadIDCounter = 0;
+  exports.__interactionsRef = null;
+  exports.__subscriberRef = null;
+  {
+    exports.__interactionsRef = {
+      current: new Set()
+    };
+    exports.__subscriberRef = {
+      current: null
+    };
+  }
+  function unstable_clear(callback) {
+    var prevInteractions = exports.__interactionsRef.current;
+    exports.__interactionsRef.current = new Set();
+    try {
+      return callback();
+    } finally {
+      exports.__interactionsRef.current = prevInteractions;
+    }
+  }
+  function unstable_getCurrent() {
+    {
+      return exports.__interactionsRef.current;
+    }
+  }
+  function unstable_getThreadID() {
+    return ++threadIDCounter;
+  }
+  function unstable_trace(name, timestamp, callback) {
+    var threadID = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DEFAULT_THREAD_ID;
+    var interaction = {
+      __count: 1,
+      id: interactionIDCounter++,
+      name: name,
+      timestamp: timestamp
+    };
+    var prevInteractions = exports.__interactionsRef.current;
+    var interactions = new Set(prevInteractions);
+    interactions.add(interaction);
+    exports.__interactionsRef.current = interactions;
+    var subscriber = exports.__subscriberRef.current;
+    var returnValue;
+    try {
+      if (subscriber !== null) {
+        subscriber.onInteractionTraced(interaction);
+      }
+    } finally {
+      try {
+        if (subscriber !== null) {
+          subscriber.onWorkStarted(interactions, threadID);
+        }
+      } finally {
+        try {
+          returnValue = callback();
+        } finally {
+          exports.__interactionsRef.current = prevInteractions;
+          try {
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(interactions, threadID);
+            }
+          } finally {
+            interaction.__count--;
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          }
+        }
+      }
+    }
+    return returnValue;
+  }
+  function unstable_wrap(callback) {
+    var threadID = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : DEFAULT_THREAD_ID;
+    var wrappedInteractions = exports.__interactionsRef.current;
+    var subscriber = exports.__subscriberRef.current;
+    if (subscriber !== null) {
+      subscriber.onWorkScheduled(wrappedInteractions, threadID);
+    }
+    wrappedInteractions.forEach(function (interaction) {
+      interaction.__count++;
+    });
+    var hasRun = false;
+    function wrapped() {
+      var prevInteractions = exports.__interactionsRef.current;
+      exports.__interactionsRef.current = wrappedInteractions;
+      subscriber = exports.__subscriberRef.current;
+      try {
+        var returnValue;
+        try {
+          if (subscriber !== null) {
+            subscriber.onWorkStarted(wrappedInteractions, threadID);
+          }
+        } finally {
+          try {
+            returnValue = callback.apply(undefined, arguments);
+          } finally {
+            exports.__interactionsRef.current = prevInteractions;
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(wrappedInteractions, threadID);
+            }
+          }
+        }
+        return returnValue;
+      } finally {
+        if (!hasRun) {
+          hasRun = true;
+          wrappedInteractions.forEach(function (interaction) {
+            interaction.__count--;
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          });
+        }
+      }
+    }
+    wrapped.cancel = function cancel() {
+      subscriber = exports.__subscriberRef.current;
+      try {
+        if (subscriber !== null) {
+          subscriber.onWorkCanceled(wrappedInteractions, threadID);
+        }
+      } finally {
+        wrappedInteractions.forEach(function (interaction) {
+          interaction.__count--;
+          if (subscriber && interaction.__count === 0) {
+            subscriber.onInteractionScheduledWorkCompleted(interaction);
+          }
+        });
+      }
+    };
+    return wrapped;
+  }
+  var subscribers = null;
+  {
+    subscribers = new Set();
+  }
+  function unstable_subscribe(subscriber) {
+    {
+      subscribers.add(subscriber);
+      if (subscribers.size === 1) {
+        exports.__subscriberRef.current = {
+          onInteractionScheduledWorkCompleted: onInteractionScheduledWorkCompleted,
+          onInteractionTraced: onInteractionTraced,
+          onWorkCanceled: onWorkCanceled,
+          onWorkScheduled: onWorkScheduled,
+          onWorkStarted: onWorkStarted,
+          onWorkStopped: onWorkStopped
+        };
+      }
+    }
+  }
+  function unstable_unsubscribe(subscriber) {
+    {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0) {
+        exports.__subscriberRef.current = null;
+      }
+    }
+  }
+  function onInteractionTraced(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onInteractionTraced(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onInteractionScheduledWorkCompleted(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onInteractionScheduledWorkCompleted(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkScheduled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkScheduled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkStarted(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkStarted(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkStopped(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkStopped(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkCanceled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function (subscriber) {
+      try {
+        subscriber.onWorkCanceled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
+        }
+      }
+    });
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  exports.unstable_clear = unstable_clear;
+  exports.unstable_getCurrent = unstable_getCurrent;
+  exports.unstable_getThreadID = unstable_getThreadID;
+  exports.unstable_subscribe = unstable_subscribe;
+  exports.unstable_trace = unstable_trace;
+  exports.unstable_unsubscribe = unstable_unsubscribe;
+  exports.unstable_wrap = unstable_wrap;
+})();
+
+},
+
+// node_modules/react-dom/index.js @5
+5: function(__fusereq, exports, module){
+'use strict';
+function checkDCE() {
+  if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function') {
+    return;
+  }
+  throw new Error('^_^');
+  try {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE(checkDCE);
+  } catch (err) {
+    console.error(err);
+  }
+}
+module.exports = __fusereq(9);
 
 },
 
@@ -18425,1303 +19695,33 @@ exports.SocketClient = SocketClient;
 
 },
 
-// src/components/details/Details.tsx @10
-10: function(__fusereq, exports, module){
-exports.__esModule = true;
-var react_1 = __fusereq(4);
-__fusereq(16);
-function Details() {
-  return react_1.createElement("div", {
-    className: "Details"
-  }, react_1.createElement("div", {
-    className: "repo-link"
-  }, react_1.createElement("a", {
-    href: "https://github.com/fuse-box/react-example",
-    target: "_blank"
-  }, "\n          https://github.com/fuse-box/react-example\n        ")), react_1.createElement("div", {
-    className: "try-updating"
-  }, "\n        Try changing any of the components, You will get an isntant update\n        without a page refresh\n      "), react_1.createElement("div", {
-    className: "hint"
-  }, "\n        Did you know that it doesn't matter how many components you have 5 or\n        5000, FuseBox is smart at detecting the changes you make. You will get\n        an instant update guaranteed!\n      "), react_1.createElement("div", {
-    className: "fork"
-  }, "\n        Fork this", " ", react_1.createElement("a", {
-    href: "https://codesandbox.io/s/github/fuse-box/react-example"
-  }, "\n          sandbox\n        "), " ", "\n        and share the link with your friends and watch you code live!\n      "));
+// src/index.tsx @1
+1: function(__fusereq, exports, module){
+window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+  supportsFiber: true,
+  inject: function () {},
+  onCommitFiberRoot: function () {},
+  onCommitFiberUnmount: function () {}
+};
+function render(dom) {
+  window.cactivaCanvasDom = dom;
+  doRender();
 }
-exports.Details = Details;
-
-},
-
-// src/components/application/Application.scss @11
-11: function(__fusereq, exports, module){
-__fusereq(12)("src/components/application/Application.scss",".Application {\n  display: flex;\n  background: red;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Application .logo {\n    margin-top: 20px;\n    width: 120px;\n    height: 120px;\n    background-size: contain;\n    background-repeat: no-repeat; }\n  .Application .welcome {\n    margin-top: 20px;\n    font-size: 50px; }\n")
-},
-
-// node_modules/fuse-box/modules/fuse-box-css/index.js @12
-12: function(__fusereq, exports, module){
-var cssHandler = function (__filename, contents) {
-  var styleId = __filename.replace(/[\.\/]+/g, '-');
-  if (styleId.charAt(0) === '-') styleId = styleId.substring(1);
-  var exists = document.getElementById(styleId);
-  if (!exists) {
-    var s = document.createElement(contents ? 'style' : 'link');
-    s.id = styleId;
-    s.type = 'text/css';
-    if (contents) {
-      s.innerHTML = contents;
-    } else {
-      s.rel = 'stylesheet';
-      s.href = __filename;
+exports.render = render;
+const doRender = async () => {
+  const React = await Promise.resolve().then(() => __fusereq(4));
+  const ReactDOM = await Promise.resolve().then(() => __fusereq(5));
+  const {Application} = await Promise.resolve().then(() => __fusereq(6));
+  const dom = window.cactivaCanvasDom;
+  if (dom) {
+    if (window.lastReactDOM) {
+      window.lastReactDOM.unmountComponentAtNode(dom);
     }
-    document.getElementsByTagName('head')[0].appendChild(s);
-  } else {
-    if (contents) exists.innerHTML = contents;
+    window.lastReactDOM = ReactDOM;
+    ReactDOM.render(React.createElement(Application), dom);
   }
 };
-module.exports = cssHandler;
-
-},
-
-// node_modules/fuse-box/modules/events/index.js @13
-13: function(__fusereq, exports, module){
-function EventEmitter() {
-  this._events = this._events || ({});
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-EventEmitter.EventEmitter = EventEmitter;
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-EventEmitter.defaultMaxListeners = 10;
-EventEmitter.prototype.setMaxListeners = function (n) {
-  if (!isNumber(n) || n < 0 || isNaN(n)) throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-EventEmitter.prototype.emit = function (type) {
-  var er, handler, len, args, i, listeners;
-  if (!this._events) this._events = {};
-  if (type === 'error') {
-    if (!this._events.error || isObject(this._events.error) && !this._events.error.length) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er;
-      }
-      throw TypeError('Uncaught, unspecified "error" event.');
-    }
-  }
-  handler = this._events[type];
-  if (isUndefined(handler)) return false;
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      default:
-        args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    args = Array.prototype.slice.call(arguments, 1);
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++) listeners[i].apply(this, args);
-  }
-  return true;
-};
-EventEmitter.prototype.addListener = function (type, listener) {
-  var m;
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  if (!this._events) this._events = {};
-  if (this._events.newListener) this.emit('newListener', type, isFunction(listener.listener) ? listener.listener : listener);
-  if (!this._events[type]) this._events[type] = listener; else if (isObject(this._events[type])) this._events[type].push(listener); else this._events[type] = [this._events[type], listener];
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
-      if (typeof console.trace === 'function') {
-        console.trace();
-      }
-    }
-  }
-  return this;
-};
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-EventEmitter.prototype.once = function (type, listener) {
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  var fired = false;
-  function g() {
-    this.removeListener(type, g);
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-  g.listener = listener;
-  this.on(type, g);
-  return this;
-};
-EventEmitter.prototype.removeListener = function (type, listener) {
-  var list, position, length, i;
-  if (!isFunction(listener)) throw TypeError('listener must be a function');
-  if (!this._events || !this._events[type]) return this;
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-  if (list === listener || isFunction(list.listener) && list.listener === listener) {
-    delete this._events[type];
-    if (this._events.removeListener) this.emit('removeListener', type, listener);
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0; ) {
-      if (list[i] === listener || list[i].listener && list[i].listener === listener) {
-        position = i;
-        break;
-      }
-    }
-    if (position < 0) return this;
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-    if (this._events.removeListener) this.emit('removeListener', type, listener);
-  }
-  return this;
-};
-EventEmitter.prototype.removeAllListeners = function (type) {
-  var key, listeners;
-  if (!this._events) return this;
-  if (!this._events.removeListener) {
-    if (arguments.length === 0) this._events = {}; else if (this._events[type]) delete this._events[type];
-    return this;
-  }
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
-    }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-  listeners = this._events[type];
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else if (listeners) {
-    while (listeners.length) this.removeListener(type, listeners[listeners.length - 1]);
-  }
-  delete this._events[type];
-  return this;
-};
-EventEmitter.prototype.listeners = function (type) {
-  var ret;
-  if (!this._events || !this._events[type]) ret = []; else if (isFunction(this._events[type])) ret = [this._events[type]]; else ret = this._events[type].slice();
-  return ret;
-};
-EventEmitter.prototype.listenerCount = function (type) {
-  if (this._events) {
-    var evlistener = this._events[type];
-    if (isFunction(evlistener)) return 1; else if (evlistener) return evlistener.length;
-  }
-  return 0;
-};
-EventEmitter.listenerCount = function (emitter, type) {
-  return emitter.listenerCount(type);
-};
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-},
-
-// node_modules/object-assign/index.js @14
-14: function(__fusereq, exports, module){
-'use strict';
-var getOwnPropertySymbols = Object.getOwnPropertySymbols;
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-var propIsEnumerable = Object.prototype.propertyIsEnumerable;
-function toObject(val) {
-  if (val === null || val === undefined) {
-    throw new TypeError('Object.assign cannot be called with null or undefined');
-  }
-  return Object(val);
-}
-function shouldUseNative() {
-  try {
-    if (!Object.assign) {
-      return false;
-    }
-    var test1 = new String('abc');
-    test1[5] = 'de';
-    if (Object.getOwnPropertyNames(test1)[0] === '5') {
-      return false;
-    }
-    var test2 = {};
-    for (var i = 0; i < 10; i++) {
-      test2['_' + String.fromCharCode(i)] = i;
-    }
-    var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
-      return test2[n];
-    });
-    if (order2.join('') !== '0123456789') {
-      return false;
-    }
-    var test3 = {};
-    ('abcdefghijklmnopqrst').split('').forEach(function (letter) {
-      test3[letter] = letter;
-    });
-    if (Object.keys(Object.assign({}, test3)).join('') !== 'abcdefghijklmnopqrst') {
-      return false;
-    }
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
-module.exports = shouldUseNative() ? Object.assign : function (target, source) {
-  var from;
-  var to = toObject(target);
-  var symbols;
-  for (var s = 1; s < arguments.length; s++) {
-    from = Object(arguments[s]);
-    for (var key in from) {
-      if (hasOwnProperty.call(from, key)) {
-        to[key] = from[key];
-      }
-    }
-    if (getOwnPropertySymbols) {
-      symbols = getOwnPropertySymbols(from);
-      for (var i = 0; i < symbols.length; i++) {
-        if (propIsEnumerable.call(from, symbols[i])) {
-          to[symbols[i]] = from[symbols[i]];
-        }
-      }
-    }
-  }
-  return to;
-};
-
-},
-
-// node_modules/prop-types/checkPropTypes.js @15
-15: function(__fusereq, exports, module){
-'use strict';
-var printWarning = function () {};
-var ReactPropTypesSecret = __fusereq(19);
-var loggedTypeFailures = {};
-var has = Function.call.bind(Object.prototype.hasOwnProperty);
-printWarning = function (text) {
-  var message = 'Warning: ' + text;
-  if (typeof console !== 'undefined') {
-    console.error(message);
-  }
-  try {
-    throw new Error(message);
-  } catch (x) {}
-};
-function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
-  for (var typeSpecName in typeSpecs) {
-    if (has(typeSpecs, typeSpecName)) {
-      var error;
-      try {
-        if (typeof typeSpecs[typeSpecName] !== 'function') {
-          var err = Error((componentName || 'React class') + ': ' + location + ' type `' + typeSpecName + '` is invalid; ' + 'it must be a function, usually from the `prop-types` package, but received `' + typeof typeSpecs[typeSpecName] + '`.');
-          err.name = 'Invariant Violation';
-          throw err;
-        }
-        error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
-      } catch (ex) {
-        error = ex;
-      }
-      if (error && !(error instanceof Error)) {
-        printWarning((componentName || 'React class') + ': type specification of ' + location + ' `' + typeSpecName + '` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a ' + typeof error + '. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).');
-      }
-      if (error instanceof Error && !((error.message in loggedTypeFailures))) {
-        loggedTypeFailures[error.message] = true;
-        var stack = getStack ? getStack() : '';
-        printWarning('Failed ' + location + ' type: ' + error.message + (stack != null ? stack : ''));
-      }
-    }
-  }
-}
-checkPropTypes.resetWarningCache = function () {
-  loggedTypeFailures = {};
-};
-module.exports = checkPropTypes;
-
-},
-
-// src/components/details/Details.scss @16
-16: function(__fusereq, exports, module){
-__fusereq(12)("src/components/details/Details.scss",".Details {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column; }\n  .Details .repo-link {\n    padding: 20px; }\n  .Details .try-updating {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-weight: bold; }\n  .Details .hint {\n    max-width: 500px;\n    padding: 20px;\n    text-align: center;\n    font-size: 14px;\n    background-color: #f0f0f0;\n    border-radius: 5px; }\n  .Details .fork {\n    margin-top: 40px;\n    font-size: 15px; }\n")
-},
-
-// node_modules/scheduler/index.js @17
-17: function(__fusereq, exports, module){
-'use strict';
-module.exports = __fusereq(20);
-
-},
-
-// node_modules/scheduler/tracing.js @18
-18: function(__fusereq, exports, module){
-'use strict';
-module.exports = __fusereq(21);
-
-},
-
-// node_modules/prop-types/lib/ReactPropTypesSecret.js @19
-19: function(__fusereq, exports, module){
-'use strict';
-var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
-module.exports = ReactPropTypesSecret;
-
-},
-
-// node_modules/scheduler/cjs/scheduler.development.js @20
-20: function(__fusereq, exports, module){
-'use strict';
-(function () {
-  'use strict';
-  var enableSchedulerDebugging = false;
-  var enableProfiling = true;
-  var requestHostCallback;
-  var requestHostTimeout;
-  var cancelHostTimeout;
-  var shouldYieldToHost;
-  var requestPaint;
-  if (typeof window === 'undefined' || typeof MessageChannel !== 'function') {
-    var _callback = null;
-    var _timeoutID = null;
-    var _flushCallback = function () {
-      if (_callback !== null) {
-        try {
-          var currentTime = exports.unstable_now();
-          var hasRemainingTime = true;
-          _callback(hasRemainingTime, currentTime);
-          _callback = null;
-        } catch (e) {
-          setTimeout(_flushCallback, 0);
-          throw e;
-        }
-      }
-    };
-    var initialTime = Date.now();
-    exports.unstable_now = function () {
-      return Date.now() - initialTime;
-    };
-    requestHostCallback = function (cb) {
-      if (_callback !== null) {
-        setTimeout(requestHostCallback, 0, cb);
-      } else {
-        _callback = cb;
-        setTimeout(_flushCallback, 0);
-      }
-    };
-    requestHostTimeout = function (cb, ms) {
-      _timeoutID = setTimeout(cb, ms);
-    };
-    cancelHostTimeout = function () {
-      clearTimeout(_timeoutID);
-    };
-    shouldYieldToHost = function () {
-      return false;
-    };
-    requestPaint = exports.unstable_forceFrameRate = function () {};
-  } else {
-    var performance = window.performance;
-    var _Date = window.Date;
-    var _setTimeout = window.setTimeout;
-    var _clearTimeout = window.clearTimeout;
-    if (typeof console !== 'undefined') {
-      var requestAnimationFrame = window.requestAnimationFrame;
-      var cancelAnimationFrame = window.cancelAnimationFrame;
-      if (typeof requestAnimationFrame !== 'function') {
-        console['error']("This browser doesn't support requestAnimationFrame. " + 'Make sure that you load a ' + 'polyfill in older browsers. https://fb.me/react-polyfills');
-      }
-      if (typeof cancelAnimationFrame !== 'function') {
-        console['error']("This browser doesn't support cancelAnimationFrame. " + 'Make sure that you load a ' + 'polyfill in older browsers. https://fb.me/react-polyfills');
-      }
-    }
-    if (typeof performance === 'object' && typeof performance.now === 'function') {
-      exports.unstable_now = function () {
-        return performance.now();
-      };
-    } else {
-      var _initialTime = _Date.now();
-      exports.unstable_now = function () {
-        return _Date.now() - _initialTime;
-      };
-    }
-    var isMessageLoopRunning = false;
-    var scheduledHostCallback = null;
-    var taskTimeoutID = -1;
-    var yieldInterval = 5;
-    var deadline = 0;
-    {
-      shouldYieldToHost = function () {
-        return exports.unstable_now() >= deadline;
-      };
-      requestPaint = function () {};
-    }
-    exports.unstable_forceFrameRate = function (fps) {
-      if (fps < 0 || fps > 125) {
-        console['error']('forceFrameRate takes a positive int between 0 and 125, ' + 'forcing framerates higher than 125 fps is not unsupported');
-        return;
-      }
-      if (fps > 0) {
-        yieldInterval = Math.floor(1000 / fps);
-      } else {
-        yieldInterval = 5;
-      }
-    };
-    var performWorkUntilDeadline = function () {
-      if (scheduledHostCallback !== null) {
-        var currentTime = exports.unstable_now();
-        deadline = currentTime + yieldInterval;
-        var hasTimeRemaining = true;
-        try {
-          var hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
-          if (!hasMoreWork) {
-            isMessageLoopRunning = false;
-            scheduledHostCallback = null;
-          } else {
-            port.postMessage(null);
-          }
-        } catch (error) {
-          port.postMessage(null);
-          throw error;
-        }
-      } else {
-        isMessageLoopRunning = false;
-      }
-    };
-    var channel = new MessageChannel();
-    var port = channel.port2;
-    channel.port1.onmessage = performWorkUntilDeadline;
-    requestHostCallback = function (callback) {
-      scheduledHostCallback = callback;
-      if (!isMessageLoopRunning) {
-        isMessageLoopRunning = true;
-        port.postMessage(null);
-      }
-    };
-    requestHostTimeout = function (callback, ms) {
-      taskTimeoutID = _setTimeout(function () {
-        callback(exports.unstable_now());
-      }, ms);
-    };
-    cancelHostTimeout = function () {
-      _clearTimeout(taskTimeoutID);
-      taskTimeoutID = -1;
-    };
-  }
-  function push(heap, node) {
-    var index = heap.length;
-    heap.push(node);
-    siftUp(heap, node, index);
-  }
-  function peek(heap) {
-    var first = heap[0];
-    return first === undefined ? null : first;
-  }
-  function pop(heap) {
-    var first = heap[0];
-    if (first !== undefined) {
-      var last = heap.pop();
-      if (last !== first) {
-        heap[0] = last;
-        siftDown(heap, last, 0);
-      }
-      return first;
-    } else {
-      return null;
-    }
-  }
-  function siftUp(heap, node, i) {
-    var index = i;
-    while (true) {
-      var parentIndex = index - 1 >>> 1;
-      var parent = heap[parentIndex];
-      if (parent !== undefined && compare(parent, node) > 0) {
-        heap[parentIndex] = node;
-        heap[index] = parent;
-        index = parentIndex;
-      } else {
-        return;
-      }
-    }
-  }
-  function siftDown(heap, node, i) {
-    var index = i;
-    var length = heap.length;
-    while (index < length) {
-      var leftIndex = (index + 1) * 2 - 1;
-      var left = heap[leftIndex];
-      var rightIndex = leftIndex + 1;
-      var right = heap[rightIndex];
-      if (left !== undefined && compare(left, node) < 0) {
-        if (right !== undefined && compare(right, left) < 0) {
-          heap[index] = right;
-          heap[rightIndex] = node;
-          index = rightIndex;
-        } else {
-          heap[index] = left;
-          heap[leftIndex] = node;
-          index = leftIndex;
-        }
-      } else if (right !== undefined && compare(right, node) < 0) {
-        heap[index] = right;
-        heap[rightIndex] = node;
-        index = rightIndex;
-      } else {
-        return;
-      }
-    }
-  }
-  function compare(a, b) {
-    var diff = a.sortIndex - b.sortIndex;
-    return diff !== 0 ? diff : a.id - b.id;
-  }
-  var NoPriority = 0;
-  var ImmediatePriority = 1;
-  var UserBlockingPriority = 2;
-  var NormalPriority = 3;
-  var LowPriority = 4;
-  var IdlePriority = 5;
-  var runIdCounter = 0;
-  var mainThreadIdCounter = 0;
-  var profilingStateSize = 4;
-  var sharedProfilingBuffer = typeof SharedArrayBuffer === 'function' ? new SharedArrayBuffer(profilingStateSize * Int32Array.BYTES_PER_ELEMENT) : typeof ArrayBuffer === 'function' ? new ArrayBuffer(profilingStateSize * Int32Array.BYTES_PER_ELEMENT) : null;
-  var profilingState = sharedProfilingBuffer !== null ? new Int32Array(sharedProfilingBuffer) : [];
-  var PRIORITY = 0;
-  var CURRENT_TASK_ID = 1;
-  var CURRENT_RUN_ID = 2;
-  var QUEUE_SIZE = 3;
-  {
-    profilingState[PRIORITY] = NoPriority;
-    profilingState[QUEUE_SIZE] = 0;
-    profilingState[CURRENT_TASK_ID] = 0;
-  }
-  var INITIAL_EVENT_LOG_SIZE = 131072;
-  var MAX_EVENT_LOG_SIZE = 524288;
-  var eventLogSize = 0;
-  var eventLogBuffer = null;
-  var eventLog = null;
-  var eventLogIndex = 0;
-  var TaskStartEvent = 1;
-  var TaskCompleteEvent = 2;
-  var TaskErrorEvent = 3;
-  var TaskCancelEvent = 4;
-  var TaskRunEvent = 5;
-  var TaskYieldEvent = 6;
-  var SchedulerSuspendEvent = 7;
-  var SchedulerResumeEvent = 8;
-  function logEvent(entries) {
-    if (eventLog !== null) {
-      var offset = eventLogIndex;
-      eventLogIndex += entries.length;
-      if (eventLogIndex + 1 > eventLogSize) {
-        eventLogSize *= 2;
-        if (eventLogSize > MAX_EVENT_LOG_SIZE) {
-          console['error']("Scheduler Profiling: Event log exceeded maximum size. Don't " + 'forget to call `stopLoggingProfilingEvents()`.');
-          stopLoggingProfilingEvents();
-          return;
-        }
-        var newEventLog = new Int32Array(eventLogSize * 4);
-        newEventLog.set(eventLog);
-        eventLogBuffer = newEventLog.buffer;
-        eventLog = newEventLog;
-      }
-      eventLog.set(entries, offset);
-    }
-  }
-  function startLoggingProfilingEvents() {
-    eventLogSize = INITIAL_EVENT_LOG_SIZE;
-    eventLogBuffer = new ArrayBuffer(eventLogSize * 4);
-    eventLog = new Int32Array(eventLogBuffer);
-    eventLogIndex = 0;
-  }
-  function stopLoggingProfilingEvents() {
-    var buffer = eventLogBuffer;
-    eventLogSize = 0;
-    eventLogBuffer = null;
-    eventLog = null;
-    eventLogIndex = 0;
-    return buffer;
-  }
-  function markTaskStart(task, ms) {
-    {
-      profilingState[QUEUE_SIZE]++;
-      if (eventLog !== null) {
-        logEvent([TaskStartEvent, ms * 1000, task.id, task.priorityLevel]);
-      }
-    }
-  }
-  function markTaskCompleted(task, ms) {
-    {
-      profilingState[PRIORITY] = NoPriority;
-      profilingState[CURRENT_TASK_ID] = 0;
-      profilingState[QUEUE_SIZE]--;
-      if (eventLog !== null) {
-        logEvent([TaskCompleteEvent, ms * 1000, task.id]);
-      }
-    }
-  }
-  function markTaskCanceled(task, ms) {
-    {
-      profilingState[QUEUE_SIZE]--;
-      if (eventLog !== null) {
-        logEvent([TaskCancelEvent, ms * 1000, task.id]);
-      }
-    }
-  }
-  function markTaskErrored(task, ms) {
-    {
-      profilingState[PRIORITY] = NoPriority;
-      profilingState[CURRENT_TASK_ID] = 0;
-      profilingState[QUEUE_SIZE]--;
-      if (eventLog !== null) {
-        logEvent([TaskErrorEvent, ms * 1000, task.id]);
-      }
-    }
-  }
-  function markTaskRun(task, ms) {
-    {
-      runIdCounter++;
-      profilingState[PRIORITY] = task.priorityLevel;
-      profilingState[CURRENT_TASK_ID] = task.id;
-      profilingState[CURRENT_RUN_ID] = runIdCounter;
-      if (eventLog !== null) {
-        logEvent([TaskRunEvent, ms * 1000, task.id, runIdCounter]);
-      }
-    }
-  }
-  function markTaskYield(task, ms) {
-    {
-      profilingState[PRIORITY] = NoPriority;
-      profilingState[CURRENT_TASK_ID] = 0;
-      profilingState[CURRENT_RUN_ID] = 0;
-      if (eventLog !== null) {
-        logEvent([TaskYieldEvent, ms * 1000, task.id, runIdCounter]);
-      }
-    }
-  }
-  function markSchedulerSuspended(ms) {
-    {
-      mainThreadIdCounter++;
-      if (eventLog !== null) {
-        logEvent([SchedulerSuspendEvent, ms * 1000, mainThreadIdCounter]);
-      }
-    }
-  }
-  function markSchedulerUnsuspended(ms) {
-    {
-      if (eventLog !== null) {
-        logEvent([SchedulerResumeEvent, ms * 1000, mainThreadIdCounter]);
-      }
-    }
-  }
-  var maxSigned31BitInt = 1073741823;
-  var IMMEDIATE_PRIORITY_TIMEOUT = -1;
-  var USER_BLOCKING_PRIORITY = 250;
-  var NORMAL_PRIORITY_TIMEOUT = 5000;
-  var LOW_PRIORITY_TIMEOUT = 10000;
-  var IDLE_PRIORITY = maxSigned31BitInt;
-  var taskQueue = [];
-  var timerQueue = [];
-  var taskIdCounter = 1;
-  var currentTask = null;
-  var currentPriorityLevel = NormalPriority;
-  var isPerformingWork = false;
-  var isHostCallbackScheduled = false;
-  var isHostTimeoutScheduled = false;
-  function advanceTimers(currentTime) {
-    var timer = peek(timerQueue);
-    while (timer !== null) {
-      if (timer.callback === null) {
-        pop(timerQueue);
-      } else if (timer.startTime <= currentTime) {
-        pop(timerQueue);
-        timer.sortIndex = timer.expirationTime;
-        push(taskQueue, timer);
-        {
-          markTaskStart(timer, currentTime);
-          timer.isQueued = true;
-        }
-      } else {
-        return;
-      }
-      timer = peek(timerQueue);
-    }
-  }
-  function handleTimeout(currentTime) {
-    isHostTimeoutScheduled = false;
-    advanceTimers(currentTime);
-    if (!isHostCallbackScheduled) {
-      if (peek(taskQueue) !== null) {
-        isHostCallbackScheduled = true;
-        requestHostCallback(flushWork);
-      } else {
-        var firstTimer = peek(timerQueue);
-        if (firstTimer !== null) {
-          requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
-        }
-      }
-    }
-  }
-  function flushWork(hasTimeRemaining, initialTime) {
-    {
-      markSchedulerUnsuspended(initialTime);
-    }
-    isHostCallbackScheduled = false;
-    if (isHostTimeoutScheduled) {
-      isHostTimeoutScheduled = false;
-      cancelHostTimeout();
-    }
-    isPerformingWork = true;
-    var previousPriorityLevel = currentPriorityLevel;
-    try {
-      if (enableProfiling) {
-        try {
-          return workLoop(hasTimeRemaining, initialTime);
-        } catch (error) {
-          if (currentTask !== null) {
-            var currentTime = exports.unstable_now();
-            markTaskErrored(currentTask, currentTime);
-            currentTask.isQueued = false;
-          }
-          throw error;
-        }
-      } else {
-        return workLoop(hasTimeRemaining, initialTime);
-      }
-    } finally {
-      currentTask = null;
-      currentPriorityLevel = previousPriorityLevel;
-      isPerformingWork = false;
-      {
-        var _currentTime = exports.unstable_now();
-        markSchedulerSuspended(_currentTime);
-      }
-    }
-  }
-  function workLoop(hasTimeRemaining, initialTime) {
-    var currentTime = initialTime;
-    advanceTimers(currentTime);
-    currentTask = peek(taskQueue);
-    while (currentTask !== null && !enableSchedulerDebugging) {
-      if (currentTask.expirationTime > currentTime && (!hasTimeRemaining || shouldYieldToHost())) {
-        break;
-      }
-      var callback = currentTask.callback;
-      if (callback !== null) {
-        currentTask.callback = null;
-        currentPriorityLevel = currentTask.priorityLevel;
-        var didUserCallbackTimeout = currentTask.expirationTime <= currentTime;
-        markTaskRun(currentTask, currentTime);
-        var continuationCallback = callback(didUserCallbackTimeout);
-        currentTime = exports.unstable_now();
-        if (typeof continuationCallback === 'function') {
-          currentTask.callback = continuationCallback;
-          markTaskYield(currentTask, currentTime);
-        } else {
-          {
-            markTaskCompleted(currentTask, currentTime);
-            currentTask.isQueued = false;
-          }
-          if (currentTask === peek(taskQueue)) {
-            pop(taskQueue);
-          }
-        }
-        advanceTimers(currentTime);
-      } else {
-        pop(taskQueue);
-      }
-      currentTask = peek(taskQueue);
-    }
-    if (currentTask !== null) {
-      return true;
-    } else {
-      var firstTimer = peek(timerQueue);
-      if (firstTimer !== null) {
-        requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
-      }
-      return false;
-    }
-  }
-  function unstable_runWithPriority(priorityLevel, eventHandler) {
-    switch (priorityLevel) {
-      case ImmediatePriority:
-      case UserBlockingPriority:
-      case NormalPriority:
-      case LowPriority:
-      case IdlePriority:
-        break;
-      default:
-        priorityLevel = NormalPriority;
-    }
-    var previousPriorityLevel = currentPriorityLevel;
-    currentPriorityLevel = priorityLevel;
-    try {
-      return eventHandler();
-    } finally {
-      currentPriorityLevel = previousPriorityLevel;
-    }
-  }
-  function unstable_next(eventHandler) {
-    var priorityLevel;
-    switch (currentPriorityLevel) {
-      case ImmediatePriority:
-      case UserBlockingPriority:
-      case NormalPriority:
-        priorityLevel = NormalPriority;
-        break;
-      default:
-        priorityLevel = currentPriorityLevel;
-        break;
-    }
-    var previousPriorityLevel = currentPriorityLevel;
-    currentPriorityLevel = priorityLevel;
-    try {
-      return eventHandler();
-    } finally {
-      currentPriorityLevel = previousPriorityLevel;
-    }
-  }
-  function unstable_wrapCallback(callback) {
-    var parentPriorityLevel = currentPriorityLevel;
-    return function () {
-      var previousPriorityLevel = currentPriorityLevel;
-      currentPriorityLevel = parentPriorityLevel;
-      try {
-        return callback.apply(this, arguments);
-      } finally {
-        currentPriorityLevel = previousPriorityLevel;
-      }
-    };
-  }
-  function timeoutForPriorityLevel(priorityLevel) {
-    switch (priorityLevel) {
-      case ImmediatePriority:
-        return IMMEDIATE_PRIORITY_TIMEOUT;
-      case UserBlockingPriority:
-        return USER_BLOCKING_PRIORITY;
-      case IdlePriority:
-        return IDLE_PRIORITY;
-      case LowPriority:
-        return LOW_PRIORITY_TIMEOUT;
-      case NormalPriority:
-      default:
-        return NORMAL_PRIORITY_TIMEOUT;
-    }
-  }
-  function unstable_scheduleCallback(priorityLevel, callback, options) {
-    var currentTime = exports.unstable_now();
-    var startTime;
-    var timeout;
-    if (typeof options === 'object' && options !== null) {
-      var delay = options.delay;
-      if (typeof delay === 'number' && delay > 0) {
-        startTime = currentTime + delay;
-      } else {
-        startTime = currentTime;
-      }
-      timeout = typeof options.timeout === 'number' ? options.timeout : timeoutForPriorityLevel(priorityLevel);
-    } else {
-      timeout = timeoutForPriorityLevel(priorityLevel);
-      startTime = currentTime;
-    }
-    var expirationTime = startTime + timeout;
-    var newTask = {
-      id: taskIdCounter++,
-      callback: callback,
-      priorityLevel: priorityLevel,
-      startTime: startTime,
-      expirationTime: expirationTime,
-      sortIndex: -1
-    };
-    {
-      newTask.isQueued = false;
-    }
-    if (startTime > currentTime) {
-      newTask.sortIndex = startTime;
-      push(timerQueue, newTask);
-      if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
-        if (isHostTimeoutScheduled) {
-          cancelHostTimeout();
-        } else {
-          isHostTimeoutScheduled = true;
-        }
-        requestHostTimeout(handleTimeout, startTime - currentTime);
-      }
-    } else {
-      newTask.sortIndex = expirationTime;
-      push(taskQueue, newTask);
-      {
-        markTaskStart(newTask, currentTime);
-        newTask.isQueued = true;
-      }
-      if (!isHostCallbackScheduled && !isPerformingWork) {
-        isHostCallbackScheduled = true;
-        requestHostCallback(flushWork);
-      }
-    }
-    return newTask;
-  }
-  function unstable_pauseExecution() {}
-  function unstable_continueExecution() {
-    if (!isHostCallbackScheduled && !isPerformingWork) {
-      isHostCallbackScheduled = true;
-      requestHostCallback(flushWork);
-    }
-  }
-  function unstable_getFirstCallbackNode() {
-    return peek(taskQueue);
-  }
-  function unstable_cancelCallback(task) {
-    {
-      if (task.isQueued) {
-        var currentTime = exports.unstable_now();
-        markTaskCanceled(task, currentTime);
-        task.isQueued = false;
-      }
-    }
-    task.callback = null;
-  }
-  function unstable_getCurrentPriorityLevel() {
-    return currentPriorityLevel;
-  }
-  function unstable_shouldYield() {
-    var currentTime = exports.unstable_now();
-    advanceTimers(currentTime);
-    var firstTask = peek(taskQueue);
-    return firstTask !== currentTask && currentTask !== null && firstTask !== null && firstTask.callback !== null && firstTask.startTime <= currentTime && firstTask.expirationTime < currentTask.expirationTime || shouldYieldToHost();
-  }
-  var unstable_requestPaint = requestPaint;
-  var unstable_Profiling = {
-    startLoggingProfilingEvents: startLoggingProfilingEvents,
-    stopLoggingProfilingEvents: stopLoggingProfilingEvents,
-    sharedProfilingBuffer: sharedProfilingBuffer
-  };
-  exports.unstable_IdlePriority = IdlePriority;
-  exports.unstable_ImmediatePriority = ImmediatePriority;
-  exports.unstable_LowPriority = LowPriority;
-  exports.unstable_NormalPriority = NormalPriority;
-  exports.unstable_Profiling = unstable_Profiling;
-  exports.unstable_UserBlockingPriority = UserBlockingPriority;
-  exports.unstable_cancelCallback = unstable_cancelCallback;
-  exports.unstable_continueExecution = unstable_continueExecution;
-  exports.unstable_getCurrentPriorityLevel = unstable_getCurrentPriorityLevel;
-  exports.unstable_getFirstCallbackNode = unstable_getFirstCallbackNode;
-  exports.unstable_next = unstable_next;
-  exports.unstable_pauseExecution = unstable_pauseExecution;
-  exports.unstable_requestPaint = unstable_requestPaint;
-  exports.unstable_runWithPriority = unstable_runWithPriority;
-  exports.unstable_scheduleCallback = unstable_scheduleCallback;
-  exports.unstable_shouldYield = unstable_shouldYield;
-  exports.unstable_wrapCallback = unstable_wrapCallback;
-})();
-
-},
-
-// node_modules/scheduler/cjs/scheduler-tracing.development.js @21
-21: function(__fusereq, exports, module){
-'use strict';
-(function () {
-  'use strict';
-  var DEFAULT_THREAD_ID = 0;
-  var interactionIDCounter = 0;
-  var threadIDCounter = 0;
-  exports.__interactionsRef = null;
-  exports.__subscriberRef = null;
-  {
-    exports.__interactionsRef = {
-      current: new Set()
-    };
-    exports.__subscriberRef = {
-      current: null
-    };
-  }
-  function unstable_clear(callback) {
-    var prevInteractions = exports.__interactionsRef.current;
-    exports.__interactionsRef.current = new Set();
-    try {
-      return callback();
-    } finally {
-      exports.__interactionsRef.current = prevInteractions;
-    }
-  }
-  function unstable_getCurrent() {
-    {
-      return exports.__interactionsRef.current;
-    }
-  }
-  function unstable_getThreadID() {
-    return ++threadIDCounter;
-  }
-  function unstable_trace(name, timestamp, callback) {
-    var threadID = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DEFAULT_THREAD_ID;
-    var interaction = {
-      __count: 1,
-      id: interactionIDCounter++,
-      name: name,
-      timestamp: timestamp
-    };
-    var prevInteractions = exports.__interactionsRef.current;
-    var interactions = new Set(prevInteractions);
-    interactions.add(interaction);
-    exports.__interactionsRef.current = interactions;
-    var subscriber = exports.__subscriberRef.current;
-    var returnValue;
-    try {
-      if (subscriber !== null) {
-        subscriber.onInteractionTraced(interaction);
-      }
-    } finally {
-      try {
-        if (subscriber !== null) {
-          subscriber.onWorkStarted(interactions, threadID);
-        }
-      } finally {
-        try {
-          returnValue = callback();
-        } finally {
-          exports.__interactionsRef.current = prevInteractions;
-          try {
-            if (subscriber !== null) {
-              subscriber.onWorkStopped(interactions, threadID);
-            }
-          } finally {
-            interaction.__count--;
-            if (subscriber !== null && interaction.__count === 0) {
-              subscriber.onInteractionScheduledWorkCompleted(interaction);
-            }
-          }
-        }
-      }
-    }
-    return returnValue;
-  }
-  function unstable_wrap(callback) {
-    var threadID = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : DEFAULT_THREAD_ID;
-    var wrappedInteractions = exports.__interactionsRef.current;
-    var subscriber = exports.__subscriberRef.current;
-    if (subscriber !== null) {
-      subscriber.onWorkScheduled(wrappedInteractions, threadID);
-    }
-    wrappedInteractions.forEach(function (interaction) {
-      interaction.__count++;
-    });
-    var hasRun = false;
-    function wrapped() {
-      var prevInteractions = exports.__interactionsRef.current;
-      exports.__interactionsRef.current = wrappedInteractions;
-      subscriber = exports.__subscriberRef.current;
-      try {
-        var returnValue;
-        try {
-          if (subscriber !== null) {
-            subscriber.onWorkStarted(wrappedInteractions, threadID);
-          }
-        } finally {
-          try {
-            returnValue = callback.apply(undefined, arguments);
-          } finally {
-            exports.__interactionsRef.current = prevInteractions;
-            if (subscriber !== null) {
-              subscriber.onWorkStopped(wrappedInteractions, threadID);
-            }
-          }
-        }
-        return returnValue;
-      } finally {
-        if (!hasRun) {
-          hasRun = true;
-          wrappedInteractions.forEach(function (interaction) {
-            interaction.__count--;
-            if (subscriber !== null && interaction.__count === 0) {
-              subscriber.onInteractionScheduledWorkCompleted(interaction);
-            }
-          });
-        }
-      }
-    }
-    wrapped.cancel = function cancel() {
-      subscriber = exports.__subscriberRef.current;
-      try {
-        if (subscriber !== null) {
-          subscriber.onWorkCanceled(wrappedInteractions, threadID);
-        }
-      } finally {
-        wrappedInteractions.forEach(function (interaction) {
-          interaction.__count--;
-          if (subscriber && interaction.__count === 0) {
-            subscriber.onInteractionScheduledWorkCompleted(interaction);
-          }
-        });
-      }
-    };
-    return wrapped;
-  }
-  var subscribers = null;
-  {
-    subscribers = new Set();
-  }
-  function unstable_subscribe(subscriber) {
-    {
-      subscribers.add(subscriber);
-      if (subscribers.size === 1) {
-        exports.__subscriberRef.current = {
-          onInteractionScheduledWorkCompleted: onInteractionScheduledWorkCompleted,
-          onInteractionTraced: onInteractionTraced,
-          onWorkCanceled: onWorkCanceled,
-          onWorkScheduled: onWorkScheduled,
-          onWorkStarted: onWorkStarted,
-          onWorkStopped: onWorkStopped
-        };
-      }
-    }
-  }
-  function unstable_unsubscribe(subscriber) {
-    {
-      subscribers.delete(subscriber);
-      if (subscribers.size === 0) {
-        exports.__subscriberRef.current = null;
-      }
-    }
-  }
-  function onInteractionTraced(interaction) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onInteractionTraced(interaction);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onInteractionScheduledWorkCompleted(interaction) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onInteractionScheduledWorkCompleted(interaction);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkScheduled(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkScheduled(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkStarted(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkStarted(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkStopped(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkStopped(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  function onWorkCanceled(interactions, threadID) {
-    var didCatchError = false;
-    var caughtError = null;
-    subscribers.forEach(function (subscriber) {
-      try {
-        subscriber.onWorkCanceled(interactions, threadID);
-      } catch (error) {
-        if (!didCatchError) {
-          didCatchError = true;
-          caughtError = error;
-        }
-      }
-    });
-    if (didCatchError) {
-      throw caughtError;
-    }
-  }
-  exports.unstable_clear = unstable_clear;
-  exports.unstable_getCurrent = unstable_getCurrent;
-  exports.unstable_getThreadID = unstable_getThreadID;
-  exports.unstable_subscribe = unstable_subscribe;
-  exports.unstable_trace = unstable_trace;
-  exports.unstable_unsubscribe = unstable_unsubscribe;
-  exports.unstable_wrap = unstable_wrap;
-})();
+doRender();
 
 }
 }, function(){

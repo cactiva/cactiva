@@ -43,7 +43,7 @@ const prepare_vscode_source = async (next: any) => {
 
 const patch_vscode_source = async (next: any) => {
   if (fs.existsSync("./vscode") && fs.existsSync("./vscode-patch")) {
-    await run("cp -r vscode-patch/* vscode");
+    await run("cp -r vscode-patch vscode");
   }
   next();
 };

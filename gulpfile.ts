@@ -196,7 +196,7 @@ task("force_compile", series(force_compile_vscode));
 
 task(
   "default",
-  parallel(
+  series(
     download_node_v10,
     prepare_vscode_source,
     patch_vscode_source,

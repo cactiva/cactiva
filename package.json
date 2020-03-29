@@ -15,6 +15,7 @@
   "dependencies": {
     "lodash.debounce": "^4.0.8",
     "nvexeca": "^2.1.1",
+    "ora": "^4.0.3",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-hot-ts": "^0.7.3",

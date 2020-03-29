@@ -1,9 +1,41 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
-import { parallel, series, task } from "gulp";
+import { series, task } from "gulp";
 import nvexeca from "nvexeca";
-import path from "path";
+import execa from "execa";
 import ora from "ora";
+import path from "path";
+
+const runExeca = async (
+  commands: string,
+  cwd?: string,
+  opt?: { hideOutput?: boolean; onData?: (e: any) => void }
+) => {
+  const c = commands.split(" ");
+  const app = c.shift() || "";
+  const cmd = execa(app, c, {
+    cwd,
+    all: true
+  });
+
+  if (cmd && cmd.all && !opt?.hideOutput) {
+    cmd.all.pipe(process.stdout);
+    if (opt?.onData) {
+      cmd.all.on("data", opt.onData);
+    }
+  }
+
+  if (opt?.hideOutput) {
+    const spinner = ora("Loading...").start();
+    cmd.all.on("data", e => {
+      spinner.text = e.toString("utf8");
+    });
+    await cmd;
+    spinner.stop();
+  } else {
+    await cmd;
+  }
+};
 
 const run = async (
   commands: string,
@@ -28,7 +60,7 @@ const run = async (
   if (opt?.hideOutput) {
     const spinner = ora("Loading...").start();
     cmd.all.on("data", e => {
-      spinner.text =e.toString("utf8");
+      spinner.text = e.toString("utf8");
     });
     await cmd;
     spinner.stop();
@@ -72,7 +104,7 @@ const yarn_vscode_source = async (next: any) => {
 };
 
 const compile_vscode = async (next: any) => {
-  if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/out")) {
+  if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/out/main.js")) {
     await run(`node ${yarn} compile`, "vscode", {
       hideOutput: true
     });
@@ -103,7 +135,7 @@ async function watch_vscode(next: any) {
 }
 run_vscode.displayName = "run_vscode";
 
-async function run_patcher(next: any) {
+async function run_patcher() {
   chokidar
     .watch("vscode", {
       ignored: [
@@ -122,27 +154,31 @@ async function run_patcher(next: any) {
         fs.copy(path, target);
       }
     });
-
-  next();
 }
 run_patcher.displayName = "run_patcher";
 
-async function run_vscode(next: any) {
-  next();
+async function run_vscode() {
   await run("chmod +x code.sh", "vscode/scripts");
   await run("./code.sh", "vscode/scripts", { hideOutput: true });
 }
 run_vscode.displayName = "run_vscode";
 
-async function run_fusebox(next: any) {
-  next();
-  await run("yarn fuse", undefined);
+async function run_fusebox() {
+  await runExeca("ts-node -T fuse");
 }
 run_fusebox.displayName = "run_fusebox";
 
+async function start(next: any) {
+  run_fusebox();
+  run_patcher();
+  run_vscode();
+  next();
+}
+
 task("compile", series(compile_vscode));
-task("start", parallel(run_vscode, run_fusebox, run_patcher));
 task("code", series(run_vscode));
+task("patch", series(run_patcher));
+task("start", series(start));
 task("vsdev", series(watch_vscode, "start"));
 task("force_compile", series(force_compile_vscode));
 
@@ -154,8 +190,6 @@ task(
     patch_vscode_source,
     yarn_vscode_source,
     "compile",
-    "start"
+    start
   )
 );
-
-task("start", parallel(run_vscode, run_fusebox));

@@ -13,7 +13,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "death": "^1.1.0",
     "lodash.debounce": "^4.0.8",
+    "node-tmux": "^1.0.2",
     "nvexeca": "^2.1.1",
     "ora": "^4.0.3",
     "react": "^16.8.6",

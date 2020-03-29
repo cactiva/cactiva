@@ -14,7 +14,7 @@ class Context {
         }
       },
       cache: true
-    });
+    });  
 }
 const { task } = sparky<Context>(Context);
 

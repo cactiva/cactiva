@@ -6,7 +6,7 @@ export function Application() {
   return (
     <div className="Application">
       <div className="welcome">
-        indomie ga tapi ga jelas
+        coba coba
       </div>
       <Details />
     </div>

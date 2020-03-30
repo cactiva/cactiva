@@ -26,6 +26,27 @@ export default () => `
 					Cactiva is a <b>React Editor</b><br />
 					built on the top of VSCode
 				</p>
+				<div class="splash">
+					<div class="section start">
+						<h2 class="caption">${escape(localize('welcomePage.createProject', 'Create Project'))}</h2>
+						<ul>
+							<li><a href="#">
+								Create React App
+							</a></li>
+							<li><a href="#">
+								Next JS
+							</a></li>
+							<li><a href="#">
+								React Native
+							</a></li>
+						</ul>
+					</div>
+				</div>
+				<p class="showOnStartup">
+					License : <b>Khoirul Arif</b>
+					<br />
+					Valid to : <b>April 4, 2024</b>
+				</p>
 				<p class="showOnStartup"><input type="checkbox" id="showOnStartup" class="checkbox"> <label class="caption" for="showOnStartup">${escape(
 					localize('welcomePage.showOnStartup', 'Show welcome page on startup')
 				)}</label></p>
@@ -61,26 +82,20 @@ export default () => `
 				<div class="section help">
 					<h2 class="caption">${escape(localize('welcomePage.help', 'Help'))}</h2>
 					<ul>
-						<li class="keybindingsReferenceLink"><a href="command:workbench.action.keybindingsReference">${escape(
-							localize('welcomePage.keybindingsCheatsheet', 'Printable keyboard cheatsheet')
+						<li><a href="https://cactiva.netlify.com/">${escape(
+							localize('welcomePage.ourWebsite', 'Our Website')
 						)}</a></li>
-						<li><a href="command:workbench.action.openIntroductoryVideosUrl">${escape(
-							localize('welcomePage.introductoryVideos', 'Introductory videos')
+						<li><a href="https://cactiva.netlify.com/">${escape(
+							localize('welcomePage.introductoryVideos', 'Introductory Videos')
 						)}</a></li>
-						<li><a href="command:workbench.action.openTipsAndTricksUrl">${escape(
+						<li><a href="https://cactiva.netlify.com/">${escape(
 							localize('welcomePage.tipsAndTricks', 'Tips and Tricks')
 						)}</a></li>
-						<li><a href="command:workbench.action.openDocumentationUrl">${escape(
-							localize('welcomePage.productDocumentation', 'Product documentation')
+						<li><a href="https://cactiva.netlify.com/">${escape(
+							localize('welcomePage.productDocumentation', 'Product Documentation')
 						)}</a></li>
-						<li><a href="https://github.com/Microsoft/vscode">${escape(
-							localize('welcomePage.gitHubRepository', 'GitHub repository')
-						)}</a></li>
-						<li><a href="http://stackoverflow.com/questions/tagged/vscode?sort=votes&pageSize=50">${escape(
+						<li><a href="https://cactiva.netlify.com/">${escape(
 							localize('welcomePage.stackOverflow', 'Stack Overflow')
-						)}</a></li>
-						<li><a href="command:workbench.action.openNewsletterSignupUrl">${escape(
-							localize('welcomePage.newsletterSignup', 'Join our Newsletter')
 						)}</a></li>
 					</ul>
 				</div>

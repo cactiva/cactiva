@@ -256,50 +256,48 @@
 	max-width: 900px;
 }
 
-.welcomePage {
+.welcomePageContainer  .welcomePage {
 	z-index: 9;
 }
 
-.title {
+.welcomePageContainer  .title {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 }
 
-.title h1 {
+.welcomePageContainer .title h1 {
 	font-weight: 200 !important;
 }
 
-.title img {
+.welcomePageContainer .title img {
 	width: 45px;
 	margin-right: 10px;
 }
 
-.subtitle {
+.welcomePageContainer .subtitle {
 	line-height: 20pt;
 	font-weight: 100;
 }
 
-.subtitle b {
+.welcomePageContainer .subtitle b {
 	font-weight: 300;
 }
 
-.subtitle.sub1 {
-	margin-bottom: 0;
+.welcomePageContainer .subtitle.sub1 {
+	margin-bottom: 20pt;
 }
 
-.subtitle.sub2 {
-	line-height: 22pt;
-}
 
-.showOnStartup {
+
+.welcomePageContainer .showOnStartup {
 	margin-top: 30px;
 }
 
-.splash {
+.welcomePageContainer .splash {
 	padding: 15px;
 }
 
-.commands .splash {
+.welcomePageContainer .commands .splash {
 	padding: 0;
 }

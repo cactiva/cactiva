@@ -22,10 +22,6 @@ export default () => `
 				<p class="subtitle sub1">
 					Edit React App With Confidence
 				</p>
-				<p class="subtitle sub2">
-					Cactiva is a <b>React Editor</b><br />
-					built on the top of VSCode
-				</p>
 				<div class="splash">
 					<div class="section start">
 						<h2 class="caption">${escape(localize('welcomePage.createProject', 'Create Project'))}</h2>
@@ -43,9 +39,9 @@ export default () => `
 					</div>
 				</div>
 				<p class="showOnStartup">
-					License : <b>Khoirul Arif</b>
+					Licensed to <b>Khoirul Arif</b>
 					<br />
-					Valid to : <b>April 4, 2024</b>
+					Valid until <b>April 4, 2024</b>
 				</p>
 				<p class="showOnStartup"><input type="checkbox" id="showOnStartup" class="checkbox"> <label class="caption" for="showOnStartup">${escape(
 					localize('welcomePage.showOnStartup', 'Show welcome page on startup')

@@ -5,13 +5,7 @@ class Context {
     fusebox({
       sourceMap: false,
       target: "browser",
-      hmr: { plugin: "src/hmr.ts" },
       entry: "src/index.tsx",
-      devServer: {
-        hmrServer: {
-          connectionURL: "ws://localhost:4444"
-        }
-      },
       cache: true
     });
 }
@@ -55,6 +49,10 @@ task("default", async ctx => {
       fs.copy(
         "./vscode-patch/src/vs/editor/browser/widget/cactiva/",
         "./vscode/src/vs/editor/browser/widget/cactiva/"
+      );
+      fs.copy(
+        "./vscode-patch/src/vs/editor/browser/widget/cactiva/",
+        "./vscode/out/vs/editor/browser/widget/cactiva/"
       );
     });
   });

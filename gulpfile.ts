@@ -194,6 +194,7 @@ build_worker.displayName = "build_worker";
 
 async function start(next: any) {
   run_app();
+  run_worker();
   run_vscode();
   next();
 }

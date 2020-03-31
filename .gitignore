@@ -17,3 +17,4 @@ vscode
 share
 .cache
 yarn-error.log
+vscode-patch/src/vs/editor/browser/widget/cactiva

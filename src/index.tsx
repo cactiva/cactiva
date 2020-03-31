@@ -5,24 +5,30 @@
   onCommitFiberUnmount: function() {}
 };
 
-export function render(dom: HTMLElement) {
-  (window as any).cactivaCanvasDom = dom;
-  doRender();
-}
-
-const doRender = async () => {
+export const init = async () => {
   const React = await import("react");
   const ReactDOM = await import("react-dom");
-  const { Application } = await import("./components/application/Application");
-
-  const dom = (window as any).cactivaCanvasDom;
-  if (dom) {
-    if ((window as any).lastReactDOM) {
-      (window as any).lastReactDOM.unmountComponentAtNode(dom);
+  const { Editor } = await import("./Editor/Editor");
+  const { cactiva, CactivaWorker } = await import("./models/store");
+  const { observable, toJS } = await import("mobx");
+  const { observer } = await import("mobx-react-lite");
+  const EditorCanvas = await (await import("./models/EditorCanvas")).default;
+  const EditorSource = await (await import("./models/EditorSource")).default;
+  const Canvas = observer(({ canvas }: any) => {
+    if (!canvas.root) {
+      return null;
     }
-    (window as any).lastReactDOM = ReactDOM;
-    ReactDOM.render(React.createElement(Application), dom);
-  }
+    return <Editor canvas={canvas.root} />;
+  });
+  return {
+    React,
+    ReactDOM,
+    CactivaWorker,
+    toJS,
+    EditorSource,
+    EditorCanvas,
+    observable,
+    Canvas,
+    cactiva
+  };
 };
-
-doRender();

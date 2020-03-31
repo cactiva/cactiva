@@ -1,0 +1,115 @@
+.tag-preview {
+  color: #333;
+  display: flex;
+  flex-direction: column;
+}
+
+.singletag {
+  padding: 5px;
+  border: 1px solid #c3c3c3;
+}
+
+.singletag .headertag {
+  display: flex;
+  justify-content: space-between;
+  overflow: hidden;
+  height: 14px;
+}
+
+.singletag .headertag .tagname {
+  color: #929292;
+  font-size: 11px;
+}
+
+.singletag .headertag .props {
+  display: none;
+}
+
+.singletag.hover {
+  background-color: rgba(6, 95, 212, 0.1);
+}
+.singletag.hover .headertag .tagname {
+  color: #717171;
+}
+.singletag.hover > .headertag > .props {
+  display: block;
+}
+
+.singletag .expression {
+  border: 1px dotted red;
+  font-size: 10px;
+  padding: 0;
+}
+
+.singletag.vertical {
+  padding-bottom: 0px;
+}
+
+.singletag.selected {
+  border: 1px solid rgb(6, 95, 212);
+  background-size: 30px 30px;
+  box-shadow: inset 0 0 3px 0px rgb(6, 95, 212);
+}
+.singletag .expression .expression-code {
+  padding: 5px;
+  max-height: 50px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.singletag .expression .expression-code.has-children {
+  border-bottom: 1px dotted red;
+}
+
+​ .singletag.preview {
+  padding: 0;
+  border-width: 0;
+}
+
+.divider {
+  padding: 3px;
+}
+
+.divider.hover {
+  background-color: rgba(6, 95, 212, 0.1);
+  box-shadow: inset 0 0 3px 0px rgb(6, 95, 212);
+}
+.divider.red {
+  background: red;
+}
+
+.cactiva .monaco-icon-label {
+  padding: 0px;
+  font-size: 85%;
+  padding-right: 3px;
+}
+.monaco-icon-label.hover {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px rgb(6, 95, 212);
+  border-radius: 3px;
+  background-color: rgba(6, 95, 212, 0.1);
+}
+.monaco-icon-label.selected {
+  box-shadow: inset 0 0 0 1px rgb(6, 95, 212);
+  background-color: transparent;
+  border-radius: 3px;
+  background-size: 30px 30px;
+}
+
+.singletag.preview {
+  padding: 0;
+  border: 0 !important;
+}
+
+.singletag.preview .expression,
+.singletag.preview .expression .expression-code.has-children {
+  border: 0;
+}
+
+.singletag.dragging {
+  width: 100px;
+  height: 20px;
+  font-size: 12px !important;
+}

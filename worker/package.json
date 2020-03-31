@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "dev": "webpack --config=webpack.dev.js --progress --watch",
+    "build": "webpack"
+  },
+  "dependencies": {
+    "prettier": "^2.0.2",
+    "ts-morph": "^7.0.1",
+    "webpack-shell-plugin": "^0.5.0"
+  },
+  "devDependencies": {
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
+  }
+}

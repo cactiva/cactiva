@@ -1,0 +1,28 @@
+.breadcrumb-first-spacer {
+	width: 8px;
+}
+.monaco-scrollable-element {
+	display: flex;
+	flex-direction: row;
+}
+
+.canvas-toolbar {
+	display: flex;
+	flex-direction: row;
+}
+
+.canvas-toolbar > .btn-toolbar {
+	padding: 4px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.btn-toolbar:hover,
+.btn-toolbar.active {
+	opacity: 1;
+}
+
+.btn-toolbar {
+	opacity: 0.5;
+}

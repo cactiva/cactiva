@@ -1,0 +1,40 @@
+.btn {
+  cursor: pointer;
+}
+
+.full-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cactiva-canvas {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.cactiva-canvas-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: white;
+  margin: 0 5px;
+  border-radius: 5px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* Tabs hack, because of overflowing bug: tab is smaller than it supposed to be */
+.monaco-workbench
+  .part.editor
+  > .content
+  .editor-group-container
+  > .title
+  .tabs-container {
+  width: 100%;
+}

@@ -76,7 +76,7 @@ export interface ICodeEditorWidgetOptions {
 	telemetryData?: object;
 }
 
-class ModelData {
+export class ModelData {
 	public readonly model: ITextModel;
 	public readonly viewModel: ViewModel;
 	public readonly cursor: Cursor;

@@ -40,7 +40,7 @@ const runExeca = async (
 const run = async (
   commands: string,
   cwd?: string,
-  opt?: { hideOutput?: boolean; onData?: (e: any) => void }
+  opt?: { hideOutput?: boolean; loading?: boolean; onData?: (e: any) => void }
 ) => {
   const c = commands.split(" ");
   const app = c.shift() || "";
@@ -57,7 +57,7 @@ const run = async (
     }
   }
 
-  if (opt?.hideOutput) {
+  if (opt?.hideOutput && opt?.loading !== false) {
     const spinner = ora("Loading...").start();
     cmd.all.on("data", e => {
       spinner.text = e.toString("utf8");
@@ -162,7 +162,6 @@ async function run_patcher() {
       if (event === "unlink") {
         fs.remove(target);
       } else if (event === "change") {
-        console.log(target);
         fs.copy(path, target);
       }
     });
@@ -171,18 +170,30 @@ run_patcher.displayName = "run_patcher";
 
 async function run_vscode() {
   await run("chmod +x code.sh", "vscode/scripts");
-  await run("./code.sh", "vscode/scripts", { hideOutput: true });
+  await run("./code.sh", "vscode/scripts", {
+    hideOutput: true,
+    loading: false
+  });
 }
 run_vscode.displayName = "run_vscode";
 
-async function run_fusebox() {
-  await runExeca("ts-node -T fuse");
+async function run_app() {
+  await runExeca("ts-node -T run-app");
 }
-run_fusebox.displayName = "run_fusebox";
+run_app.displayName = "run_app";
+
+async function run_worker() {
+  await runExeca("yarn dev", "worker");
+}
+run_worker.displayName = "run_worker";
+
+async function build_worker() {
+  await runExeca("yarn build", "worker");
+}
+build_worker.displayName = "build_worker";
 
 async function start(next: any) {
-  run_fusebox();
-  run_patcher();
+  run_app();
   run_vscode();
   next();
 }
@@ -191,7 +202,10 @@ task("compile", series(compile_vscode));
 task("code", series(run_vscode));
 task("patch", series(run_patcher));
 task("start", series(start));
-task("vsdev", series(watch_vscode, "start"));
+task("app", series(run_app));
+task("worker", series(run_worker));
+task("worker-build", series(build_worker));
+task("watch", parallel(run_patcher, watch_vscode));
 task("force_compile", series(force_compile_vscode));
 
 task(
@@ -201,7 +215,7 @@ task(
     prepare_vscode_source,
     patch_vscode_source,
     yarn_vscode_source,
-    "compile",
+    compile_vscode,
     start
   )
 );

@@ -115,6 +115,10 @@ const yarn_vscode_source = async (next: any) => {
 };
 
 const compile_vscode = async (next: any) => {
+  if (!fs.existsSync("./vscode-patch/src/vs/editor/browser/widget/cactiva")) {
+    run_app();
+    await build_worker();
+  }
   if (fs.existsSync("./vscode") && !fs.existsSync("./vscode/out/main.js")) {
     await run(`node ${yarn} compile`, "vscode", {
       hideOutput: true
@@ -177,17 +181,25 @@ async function run_vscode() {
 }
 run_vscode.displayName = "run_vscode";
 
-async function run_app() {
-  await runExeca("ts-node -T run-app");
+let is_app_running = false;
+async function run_app(next?: any) {
+  if (!is_app_running) {
+    await runExeca("ts-node -T run-app");
+    is_app_running = true;
+  }
+
+  if (next) next();
 }
 run_app.displayName = "run_app";
 
 async function run_worker() {
+  await runExeca("yarn", "worker");
   await runExeca("yarn dev", "worker");
 }
 run_worker.displayName = "run_worker";
 
 async function build_worker() {
+  await runExeca("yarn", "worker");
   await runExeca("yarn build", "worker");
 }
 build_worker.displayName = "build_worker";

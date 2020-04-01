@@ -13,7 +13,9 @@ out.js
 dist/
 sourcemaps.js.map
 .fusebox
-./vscode
+vscode/
+vscode/*
+
 share
 .cache
 yarn-error.log

@@ -1,28 +1,53 @@
 .breadcrumb-first-spacer {
-	width: 8px;
+  width: 8px;
 }
 .monaco-scrollable-element {
-	display: flex;
-	flex-direction: row;
+  display: flex;
+  flex-direction: row;
 }
 
 .canvas-toolbar {
-	display: flex;
-	flex-direction: row;
+  display: flex;
+  flex-direction: row;
 }
 
 .canvas-toolbar > .btn-toolbar {
-	padding: 4px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+  padding: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .btn-toolbar:hover,
 .btn-toolbar.active {
-	opacity: 1;
+  opacity: 1;
 }
 
 .btn-toolbar {
-	opacity: 0.5;
+  opacity: 0.5;
 }
+
+.monaco-breadcrumbs {
+	overflow-x: auto !important;
+}
+  /* width */
+  .monaco-breadcrumbs::-webkit-scrollbar {
+	height: 4px;
+	background-color: transparent;
+  }
+
+  /* Track */
+  .monaco-breadcrumbs::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  /* Handle */
+  .monaco-breadcrumbs::-webkit-scrollbar-thumb {
+    border-radius: 50px;
+    background: #888;
+  }
+
+  /* Handle on hover */
+  .monaco-breadcrumbs::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }

@@ -29,6 +29,27 @@
   overflow-y: auto;
 }
 
+/* width */
+.cactiva-canvas-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Track */
+.cactiva-canvas-content::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+
+/* Handle */
+.cactiva-canvas-content::-webkit-scrollbar-thumb {
+  border-radius: 50px;
+  background:#888; 
+}
+
+/* Handle on hover */
+.cactiva-canvas-content::-webkit-scrollbar-thumb:hover {
+  background: #555; 
+}
+
 /* Tabs hack, because of overflowing bug: tab is smaller than it supposed to be */
 .monaco-workbench
   .part.editor

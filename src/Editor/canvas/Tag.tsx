@@ -83,6 +83,16 @@ const Tag: React.FunctionComponent<ISingleTag> = observer(
     dragRef(domRef);
     dropRef(domRef);
 
+    const showProps = () => {
+      const sidebar = document.getElementById('workbench.parts.sidebar');
+      if (!document.getElementById('cactiva.props')) {
+        const el = document.createElement('div');
+        el.setAttribute('id', 'cactiva.props');
+        sidebar?.appendChild(el);
+        cactiva.propsEditor.el = el;
+      }
+    }
+
     return (
       <div
         onClick={(e: any) => {
@@ -93,6 +103,7 @@ const Tag: React.FunctionComponent<ISingleTag> = observer(
         }}
         ref={domRef}
         onContextMenu={(e: any) => {
+          showProps();
           if (cactiva.propsEditor.mode === "popup") {
             if (onClick) {
               onClick(node);

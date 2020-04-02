@@ -99,8 +99,7 @@ const PropsEditorContent = observer(({ domNode, style }: any) => {
         <List
           items={meta.attributes}
           onRenderCell={(item: EditorNodeAttr, index: number): JSX.Element => {
-            return;
-            <Attribute item={item} />;
+            return <Attribute item={item} />;
           }}
         />
         <input

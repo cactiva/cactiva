@@ -14,7 +14,7 @@ export default ({ item }: { item: EditorNodeAttr }) => {
             ? DirectionalHint.leftCenter
             : DirectionalHint.rightTopEdge,
         calloutWidth: 200,
-        isBeakVisible: cactiva.propsEditor.mode === "sidebar"
+        isBeakVisible: cactiva.propsEditor.mode === "sidebar",
       }}
       content={(popover: any) => {
         switch (item.name) {
@@ -29,18 +29,35 @@ export default ({ item }: { item: EditorNodeAttr }) => {
             return <div className="po-content">{item.valueLabel}</div>;
         }
       }}
-      onClickCapture={(e: any) => {
-        item.selectInCode();
-      }}
-      visibleOnRightClick={true}
     >
-      <div className="prop highlight pointer row">
-        <div className="title">{item.name}</div>
-        <div className="field row space-between">
-          <div className="overflow">{item.valueLabel}</div>
-          <div className="goto-source row center ">▸</div>
-        </div>
-      </div>
+      {({ show, hide, ref, state }: any) => {
+        return (
+          <div
+            ref={ref}
+            onClick={(e: any) => {
+              item.selectInCode();
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDoubleClick={(e) => {
+              if (!!state.visible) {
+                hide();
+              } else {
+                show();
+              }
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            className="prop highlight pointer row"
+          >
+            <div className="title">{item.name}</div>
+            <div className="field row space-between">
+              <div className="overflow">{item.valueLabel}</div>
+              <div className="goto-source row center ">▸</div>
+            </div>
+          </div>
+        );
+      }}
     </Popover>
   );
 };

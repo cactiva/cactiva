@@ -20,10 +20,9 @@ export default observer(
     calloutProps,
     onClickCapture,
     onContextMenu,
-    visibleOnRightClick
   }: IPopover) => {
     const meta = useObservable({
-      visible: false
+      visible: false,
     });
     const id = randStr(15);
     const describe = `popover-${id}`;
@@ -34,7 +33,8 @@ export default observer(
       hide: () => {
         meta.visible = false;
       },
-      ref: useRef(null as any)
+      ref: useRef(null as any),
+      state: meta,
     };
     return (
       <>
@@ -67,18 +67,12 @@ export default observer(
               if (onClickCapture) {
                 onClickCapture(e);
               }
-              if (!visibleOnRightClick) {
-                meta.visible = !meta.visible;
-              }
               e.preventDefault();
               e.stopPropagation();
             }}
             onContextMenu={(e: any) => {
               if (onContextMenu) {
                 onContextMenu(e);
-              }
-              if (!!visibleOnRightClick) {
-                meta.visible = !meta.visible;
               }
               e.preventDefault();
               e.stopPropagation();

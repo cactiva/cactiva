@@ -3,7 +3,7 @@ import EditorNode from "./EditorNode";
 import EditorCanvas from "./EditorCanvas";
 
 export const CactivaWorker = {
-  worker: null
+  worker: null,
 };
 
 interface IEditorProps {
@@ -13,8 +13,16 @@ interface IEditorProps {
   mode?: "popup" | "sidebar";
 }
 
+interface IEditorComponent {
+  el?: HTMLElement;
+  domRef?: HTMLElement;
+  hidden?: boolean;
+  mode?: "popup" | "sidebar";
+}
+
 export interface IEditorStore {
   propsEditor: IEditorProps;
+  componentEditor: IEditorComponent;
   fontColor: string;
   canvas: { [key: string]: EditorCanvas };
   mode: "layout" | "hybrid" | "preview";
@@ -23,9 +31,13 @@ export interface IEditorStore {
 export const cactiva: IEditorStore = observable({
   propsEditor: {
     mode: "popup",
-    hidden: false
+    hidden: false,
+  },
+  componentEditor: {
+    mode: "popup",
+    hidden: false,
   },
   fontColor: "#fff",
   canvas: {},
-  mode: localStorage.cactivaMode || "layout"
+  mode: localStorage.cactivaMode || "layout",
 });

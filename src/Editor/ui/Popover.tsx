@@ -41,9 +41,6 @@ export default observer(
         {meta.visible && (
           <Callout
             target={childrenProps.ref.current}
-            onDismiss={() => {
-              meta.visible = false;
-            }}
             ariaLabelledBy={id}
             ariaDescribedBy={describe}
             role="alertdialog"
@@ -52,6 +49,12 @@ export default observer(
             calloutWidth={60}
             directionalHint={DirectionalHint.topCenter}
             {...calloutProps}
+            onDismiss={() => {
+              meta.visible = false;
+              calloutProps &&
+                calloutProps.onDismiss &&
+                calloutProps.onDismiss(childrenProps);
+            }}
           >
             <div className="monaco-breadcrumb-item">
               {typeof content === "function" ? content(childrenProps) : content}

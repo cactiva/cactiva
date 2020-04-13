@@ -70,6 +70,11 @@
 
 .divider {
   padding: 3px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  position: relative;
 }
 
 .divider.hover {
@@ -78,6 +83,20 @@
 }
 .divider.red {
   background: red;
+}
+.divider .icon {
+  display: none;
+}
+.divider.hover .icon {
+  align-self: center;
+  display: flex;
+  position: absolute;
+  padding: 5px;
+  cursor: pointer;
+
+  svg {
+    fill: rgb(6, 95, 212);
+  }
 }
 
 .cactiva .monaco-icon-label {
@@ -112,4 +131,33 @@
   width: 100px;
   height: 20px;
   font-size: 12px !important;
+}
+
+.contextMenu {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+
+  .item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    opacity: 0.7;
+    align-items: center;
+    padding: 4px;
+    border-bottom: 1px solid rgb(198, 198, 198);
+    cursor: pointer;
+
+    .label {
+      margin-right: 15px;
+    }
+
+    .shortcut {
+      font-size: 11px;
+    }
+  }
+
+  .item:hover {
+    background-color: rgba(6, 95, 212, 0.2);
+  }
 }

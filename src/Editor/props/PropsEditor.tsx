@@ -8,6 +8,7 @@ import IconClose from "../icons/IconClose";
 import IconComment from "../icons/IconComment";
 import IconSidebar from "../icons/IconSidebar";
 import Attribute from "./Attribute";
+import { toJS } from "mobx";
 
 export default observer(({ domNode }: any) => {
   const propsEditor = cactiva.propsEditor;
@@ -49,7 +50,7 @@ const PropsEditorContent = observer(({ domNode, style }: any) => {
   const meta = useObservable({
     tagName: "",
     newProp: "",
-    attributes: [] as EditorNodeAttr[]
+    attributes: [] as EditorNodeAttr[],
   });
 
   useEffect(() => {

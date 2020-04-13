@@ -1,7 +1,9 @@
-import React from "react";
 import { observer, useObservable } from "mobx-react-lite";
+import React, { useEffect } from "react";
 import { useDrop } from "react-dnd";
 import EditorNode from "../../../models/EditorNode";
+import { cactiva } from "../../../models/store";
+import IconAddCircle from "../../icons/IconAddCircle";
 
 export default observer(
   (props: {
@@ -13,12 +15,13 @@ export default observer(
     onDrop: (from: EditorNode, to: EditorNode, pos: string) => void;
   }) => {
     const meta = useObservable({
-      hover: false
+      hover: false,
+      addTag: false,
     });
     const [drop, dropRef] = useDrop({
       accept: "cactiva-tag",
-      collect: monitor => ({
-        hover: !!monitor.isOver({ shallow: true })
+      collect: (monitor) => ({
+        hover: !!monitor.isOver({ shallow: true }),
       }),
       drop: (item: any, monitor) => {
         if (monitor.isOver({ shallow: true })) {
@@ -26,15 +29,42 @@ export default observer(
             props.onDrop(item.node, props.node, props.position);
           }
         }
-      }
+      },
     });
     const hovered = meta.hover || drop.hover || props.hovered ? "hover" : "";
+    const showComponents = () => {
+      const sidebar = document.getElementById("workbench.parts.sidebar");
+      console.log(
+        "ex",
+        !document.getElementById("cactiva.components"),
+        sidebar
+      );
+      if (!document.getElementById("cactiva.components")) {
+        const el = document.createElement("div");
+        el.setAttribute("id", "cactiva.components");
+        sidebar?.appendChild(el);
+        cactiva.componentEditor.el = el;
+      }
+    };
+    const clearEditor = () => {
+      let el = document.getElementById("cactiva.components");
+      if (!!el) {
+        el.remove();
+      }
+    };
+    useEffect(() => {
+      if (cactiva.componentEditor.hidden) {
+        meta.addTag = false;
+        meta.hover = false;
+        clearEditor();
+      }
+    }, [cactiva.componentEditor.hidden]);
     return (
       <div
         ref={dropRef}
         className={`divider ${hovered}`}
         onMouseOut={() => {
-          meta.hover = false;
+          if (!meta.addTag) meta.hover = false;
         }}
         onMouseOver={(e: any) => {
           meta.hover = true;
@@ -43,7 +73,21 @@ export default observer(
             e.stopPropagation();
           }
         }}
-      ></div>
+      >
+        <div
+          className="icon"
+          onClick={(e: any) => {
+            showComponents();
+            cactiva.componentEditor.hidden = false;
+            cactiva.componentEditor.domRef = e.target.parentElement;
+            meta.addTag = true;
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
+          <IconAddCircle size={14} color={"#333"} />
+        </div>
+      </div>
     );
   }
 );

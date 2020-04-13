@@ -12,6 +12,7 @@ import TagChild from "./tag/TagChild";
 import TagPreview from "./tag/TagPreview";
 import Popover from "../ui/Popover";
 import { DirectionalHint } from "office-ui-fabric-react";
+import ContextMenu from "./ContextMenu";
 
 interface ISingleTag {
   canvas: EditorCanvas;
@@ -99,21 +100,12 @@ const Tag: React.FunctionComponent<ISingleTag> = observer(
       <Popover
         calloutProps={{
           directionalHint: DirectionalHint.topLeftEdge,
-          calloutWidth: 150,
+          calloutWidth: 180,
           isBeakVisible: false,
           coverTarget: true,
         }}
         content={(popover: any) => {
-          return (
-            <div
-              style={{
-                padding: 10,
-                height: 80,
-              }}
-            >
-              Klik Kanan
-            </div>
-          );
+          return <ContextMenu />;
         }}
       >
         {({ show, hide, ref, state }: any) => {

@@ -12,11 +12,13 @@ import PropsEditor from "./props/PropsEditor";
 import "./styles/Breadcrumb.scss";
 import "./styles/Editor.scss";
 import "./styles/Tag.scss";
+import "./styles/ComponentEditor.scss";
+import ComponentEditor from "./component/ComponentEditor";
 
 export const Editor = observer(
   ({ canvas }: { canvas: EditorCanvas | undefined }) => {
     const meta = useObservable({
-      root: undefined as EditorNode | undefined
+      root: undefined as EditorNode | undefined,
     });
 
     useEffect(() => {
@@ -28,6 +30,7 @@ export const Editor = observer(
     }, [canvas.breadcrumbs, canvas.breadcrumbs.length, canvas.selectedNode]);
 
     const propsEditorEl = cactiva.propsEditor.el;
+    const componentEditorEl = cactiva.componentEditor.el;
     const mode = cactiva.mode;
 
     const tagClicked = (node: EditorNode) => {
@@ -45,6 +48,7 @@ export const Editor = observer(
     return (
       <DndProvider backend={HTML5Backend}>
         {propsEditorEl && <PropsEditor domNode={propsEditorEl} />}
+        {componentEditorEl && <ComponentEditor domNode={componentEditorEl} />}
         <TagDragPreview />
         <div className="cactiva-canvas">
           <div className={`cactiva-canvas-content ${mode}`}>

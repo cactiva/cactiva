@@ -1,0 +1,27 @@
+.cactiva-components-editor {
+  .content {
+    display: flex;
+
+    .item-component {
+      display: flex;
+      flex-direction: row;
+      padding: 4px 8px;
+      cursor: pointer;
+      flex-grow: 1;
+      border-bottom: 1px dashed #4e4e4e;
+      justify-content: space-between;
+      align-items: center;
+
+      .component-info {
+        .source {
+          font-size: 11px;
+          line-height: 11px;
+        }
+      }
+    }
+
+    .item-component:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}

@@ -105,7 +105,7 @@ const Tag: React.FunctionComponent<ISingleTag> = observer(
           coverTarget: true,
         }}
         content={(popover: any) => {
-          return <ContextMenu />;
+          return <ContextMenu popover={popover} node={node} />;
         }}
       >
         {({ show, hide, ref, state }: any) => {

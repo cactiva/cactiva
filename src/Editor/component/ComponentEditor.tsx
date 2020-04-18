@@ -105,6 +105,7 @@ const ComponentEditorContent = observer(({ domNode, style }: any) => {
         {meta.components.map((item, idx) => {
           return (
             <Popover
+              key={idx}
               calloutProps={{
                 directionalHint: DirectionalHint.rightCenter,
                 calloutWidth: 180,
@@ -125,7 +126,6 @@ const ComponentEditorContent = observer(({ domNode, style }: any) => {
               {({ show, hide, ref, state }: any) => {
                 return (
                   <div
-                    key={idx}
                     ref={ref}
                     className="item-component"
                     onMouseOver={() => {

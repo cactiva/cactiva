@@ -17,18 +17,18 @@ interface ITagInfo {
 export default class EditorNode extends EditorBase {
   @observable start: IEditorNodePos = {
     line: 0,
-    column: 0
+    column: 0,
   };
   @observable end: IEditorNodePos = {
     line: 0,
-    column: 0
+    column: 0,
   };
 
   @observable path = "";
   @observable text = "";
   @observable kind = "";
   @observable tag: ITagInfo = {
-    attributes: {}
+    attributes: {},
   };
   @observable expression = "";
   @observable children: EditorNode[] = [];
@@ -71,7 +71,7 @@ export default class EditorNode extends EditorBase {
     const result = await this.executeInWorker("node:setCode", {
       fileName: this.source.fileName,
       path: this.path,
-      code
+      code,
     });
     if (result) {
       await this.source.canvas.updateContent(result, refreshCanvas);
@@ -81,7 +81,7 @@ export default class EditorNode extends EditorBase {
   async getCode(): Promise<{ kind: string; text: string }[]> {
     const result = await this.executeInWorker("node:getCode", {
       fileName: this.source.fileName,
-      path: this.path
+      path: this.path,
     });
     if (result) {
       return result;
@@ -94,7 +94,7 @@ export default class EditorNode extends EditorBase {
       fileName: this.source.fileName,
       from: node.path,
       to: this.path,
-      position: pos
+      position: pos,
     });
     if (result) {
       this.source.canvas.updateContent(result);
@@ -106,7 +106,19 @@ export default class EditorNode extends EditorBase {
       fileName: this.source.fileName,
       from: node.path,
       to: this.path,
-      position: "children"
+      position: "children",
+    });
+    if (result) {
+      this.source.canvas.updateContent(result);
+    }
+  }
+
+  async copiedToChild(node: EditorNode): Promise<void> {
+    const result = await this.executeInWorker("node:copy", {
+      fileName: this.source.fileName,
+      from: node.path,
+      to: this.path,
+      position: "children",
     });
     if (result) {
       this.source.canvas.updateContent(result);
@@ -116,7 +128,7 @@ export default class EditorNode extends EditorBase {
   async getAttributes(): Promise<EditorNodeAttr[]> {
     const result = await this.executeInWorker("node:getAttributes", {
       fileName: this.source.fileName,
-      path: this.path
+      path: this.path,
     });
     if (result) {
       this.tag.attributes = result;

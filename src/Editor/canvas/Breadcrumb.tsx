@@ -24,7 +24,7 @@ export default observer(
             role="presentation"
             style={{
               position: "relative",
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
             <div
@@ -34,7 +34,7 @@ export default observer(
                 background: "transparent",
                 overflow: "hidden",
                 width: "100%",
-                height: "22px"
+                height: "22px",
               }}
             >
               {canvas.breadcrumbs.map((node: EditorNode, idx: number) => {
@@ -91,7 +91,7 @@ export default observer(
                                     padding: "5px 15px",
                                     cursor: "pointer",
                                     borderTop:
-                                      idx === 0 ? "0px" : "1px solid #ccc"
+                                      idx === 0 ? "0px" : "1px solid #ccc",
                                   }}
                                   onClick={() => {
                                     canvas.selectNode(
@@ -122,7 +122,7 @@ export default observer(
                 }`}
                 onClick={() => {
                   changeMode("preview");
-                  cactiva.propsEditor.node = undefined;
+                  cactiva.selectedNode = undefined;
                 }}
               >
                 <IconPreview size={14} color={cactiva.fontColor} />

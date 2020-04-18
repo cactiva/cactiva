@@ -5,21 +5,22 @@ import { generateNodes } from "./morph/generateNodes";
 import { getNodeAttributes } from "./morph/getNodeAttributes";
 import { getNodeFromPath } from "./morph/getNodeFromPath";
 import { moveNode } from "./morph/moveNode";
+import { copyNode } from "./morph/copyNode";
 const project = new Project();
 const post = postMessage;
 const reply = (id, type, message) => {
   post({
     id,
     type,
-    message
+    message,
   });
 };
 const actions = {
-  "source:load": async data => {
+  "source:load": async (data) => {
     const sourceFile = createSourceFile(project, data.fileName, data.content);
     return generateNodes(sourceFile);
   },
-  "node:getAttributes": async data => {
+  "node:getAttributes": async (data) => {
     const source = project.getSourceFile(data.fileName);
     if (!source) {
       return [];
@@ -30,14 +31,21 @@ const actions = {
     }
     return [];
   },
-  "node:move": async data => {
+  "node:move": async (data) => {
     const source = project.getSourceFile(data.fileName);
     if (!source) {
       return "";
     }
     return moveNode(source, data.from, data.to, data.position);
   },
-  "node:getCode": async data => {
+  "node:copy": async (data) => {
+    const source = project.getSourceFile(data.fileName);
+    if (!source) {
+      return "";
+    }
+    return copyNode(source, data.from, data.to, data.position);
+  },
+  "node:getCode": async (data) => {
     const source = project.getSourceFile(data.fileName);
     if (!source) {
       return "";
@@ -45,11 +53,11 @@ const actions = {
     const node = getNodeFromPath(source, data.path);
     return node === null || node === void 0
       ? void 0
-      : node.getChildren().map(e => {
+      : node.getChildren().map((e) => {
           return { kind: e.getKindName(), text: e.getText() };
         });
   },
-  "node:setCode": async data => {
+  "node:setCode": async (data) => {
     const source = project.getSourceFile(data.fileName);
     if (!source) {
       return "";
@@ -60,7 +68,7 @@ const actions = {
     }
     return source.getText();
   },
-  "node:getNodePathAtPos": async data => {
+  "node:getNodePathAtPos": async (data) => {
     const source = project.getSourceFile(data.fileName);
     if (!source) {
       return "";
@@ -83,7 +91,7 @@ const actions = {
       }
     }
     return "";
-  }
+  },
 };
 self.addEventListener("message", async function (event) {
   const data = event.data;

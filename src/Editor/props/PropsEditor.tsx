@@ -12,6 +12,7 @@ import { toJS } from "mobx";
 
 export default observer(({ domNode }: any) => {
   const propsEditor = cactiva.propsEditor;
+  const selectedNode = cactiva.selectedNode;
   return (
     <>
       {propsEditor.mode === "sidebar" ? (
@@ -21,11 +22,11 @@ export default observer(({ domNode }: any) => {
         />
       ) : (
         <>
-          {propsEditor.node && propsEditor.node.domRef && !propsEditor.hidden && (
+          {selectedNode && selectedNode.domRef && !propsEditor.hidden && (
             <Callout
               onDismiss={() => {}}
               directionalHint={DirectionalHint.leftCenter}
-              target={propsEditor.node.domRef}
+              target={selectedNode.domRef}
             >
               <PropsEditorContent />
             </Callout>
@@ -41,6 +42,7 @@ const PropsEditorContent = observer(({ domNode, style }: any) => {
   let fontColor = "black";
 
   const propsEditor = cactiva.propsEditor;
+  const selectedNode = cactiva.selectedNode;
   const sidebar = document.getElementById("workbench.parts.sidebar");
 
   if (sidebar && propsEditor.mode === "sidebar") {
@@ -55,12 +57,12 @@ const PropsEditorContent = observer(({ domNode, style }: any) => {
 
   useEffect(() => {
     (async () => {
-      if (propsEditor.node) {
-        meta.tagName = propsEditor.node.text;
-        meta.attributes = await propsEditor.node.getAttributes();
+      if (selectedNode) {
+        meta.tagName = selectedNode.text;
+        meta.attributes = await selectedNode.getAttributes();
       }
     })();
-  }, [propsEditor.node, cactiva.fontColor]);
+  }, [selectedNode, cactiva.fontColor]);
 
   const content = (
     <div className={`cactiva-props-editor ${propsEditor.mode}`} style={style}>
@@ -88,7 +90,7 @@ const PropsEditorContent = observer(({ domNode, style }: any) => {
             onClick={() => {
               propsEditor.hidden = !propsEditor.hidden;
               if (propsEditor.hidden) {
-                propsEditor.node = undefined;
+                cactiva.selectedNode = undefined;
               }
             }}
           >

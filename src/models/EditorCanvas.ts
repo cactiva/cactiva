@@ -8,7 +8,7 @@ import { Position } from "./vscode/position";
 
 export const enum DefaultEndOfLine {
   LF = 1,
-  CRLF = 2
+  CRLF = 2,
 }
 export default class EditorCanvas extends EditorBase {
   @observable breadcrumbs: EditorNode[] = [];
@@ -30,7 +30,7 @@ export default class EditorCanvas extends EditorBase {
     this._register({
       dispose: observe(this, "source", async (e: any) => {
         await this.selectRootNode("0");
-      })
+      }),
     });
     this.createTextBuffer = createTextBuffer;
   }
@@ -74,8 +74,8 @@ export default class EditorCanvas extends EditorBase {
             new Position(0, 0),
             new Position(end.lineNumber, end.column)
           ),
-          text: content
-        }
+          text: content,
+        },
       ]);
       editor.pushUndoStop();
       if (refreshCanvas) {
@@ -86,7 +86,7 @@ export default class EditorCanvas extends EditorBase {
 
   async selectNode(path: string, from: "canvas" | "code" | "breadcrumb") {
     const breadcrumbs: EditorNode[] = [];
-    await this.source.getNodeFromPath(path, n => {
+    await this.source.getNodeFromPath(path, (n) => {
       breadcrumbs.push(n);
     });
 
@@ -103,7 +103,7 @@ export default class EditorCanvas extends EditorBase {
     if (from === "code") {
       // only show propsEditor when it's not hidden
       if (!cactiva.propsEditor.hidden) {
-        cactiva.propsEditor.node = this.selectedNode;
+        cactiva.selectedNode = this.selectedNode;
       }
 
       // always show propsEditor on code select
@@ -116,14 +116,14 @@ export default class EditorCanvas extends EditorBase {
         dom.scrollIntoView({
           behavior: "auto",
           block: "center",
-          inline: "center"
+          inline: "center",
         });
       }
     } else if (from === "canvas" || from === "breadcrumb") {
       if (cactiva.propsEditor.mode === "sidebar") {
         cactiva.propsEditor.hidden = false;
       }
-      cactiva.propsEditor.node = this.selectedNode;
+      cactiva.selectedNode = this.selectedNode;
       const s = this.selectedNode.start;
       const e = this.selectedNode.end;
       this.selectingFromCanvas = true;

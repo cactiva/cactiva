@@ -4,6 +4,8 @@ import { useDrop } from "react-dnd";
 import EditorNode from "../../../models/EditorNode";
 import { cactiva } from "../../../models/store";
 import IconAddCircle from "../../icons/IconAddCircle";
+import { onPaste } from "../ContextMenu";
+import IconPaste from "../../icons/IconPaste";
 
 export default observer(
   (props: {
@@ -74,18 +76,37 @@ export default observer(
           }
         }}
       >
-        <div
-          className="icon"
-          onClick={(e: any) => {
-            showComponents();
-            cactiva.componentEditor.hidden = false;
-            cactiva.componentEditor.domRef = e.target.parentElement;
-            meta.addTag = true;
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-        >
-          <IconAddCircle size={14} color={"#333"} />
+        <div className="divider-action">
+          <div
+            className="icon"
+            onClick={(e: any) => {
+              showComponents();
+              cactiva.componentEditor.hidden = false;
+              cactiva.componentEditor.domRef = e.target.parentElement;
+              meta.addTag = true;
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <IconAddCircle size={14} color={"#333"} />
+          </div>
+          {!!cactiva.copiedCode.node && (
+            <div
+              className="icon"
+              onClick={(e: any) => {
+                onPaste(
+                  cactiva.copiedCode.node,
+                  props.node,
+                  cactiva.copiedCode.mode,
+                  "children"
+                );
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <IconPaste size={14} color={"#333"} />
+            </div>
+          )}
         </div>
       </div>
     );

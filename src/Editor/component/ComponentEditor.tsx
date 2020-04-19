@@ -1,5 +1,5 @@
 import { observer, useObservable } from "mobx-react-lite";
-import { Callout, DirectionalHint } from "office-ui-fabric-react";
+import { Callout, DirectionalHint, Modal } from "office-ui-fabric-react";
 import React, { useEffect } from "react";
 import * as ReactDOM from "react-dom";
 import { cactiva } from "../../models/store";
@@ -8,6 +8,7 @@ import IconComment from "../icons/IconComment";
 import IconSidebar from "../icons/IconSidebar";
 import IconStar from "../icons/IconStar";
 import Popover from "../ui/Popover";
+import { fuzzyMatch } from "../../libs/utils";
 
 export default observer(({ domNode }: any) => {
   const componentEditor = cactiva.componentEditor;
@@ -21,13 +22,16 @@ export default observer(({ domNode }: any) => {
       ) : (
         <>
           {componentEditor.domRef && !componentEditor.hidden && (
-            <Callout
-              onDismiss={() => {}}
-              directionalHint={DirectionalHint.leftCenter}
-              target={componentEditor.domRef}
+            <Modal
+              titleAriaId={"ComponentsEditor"}
+              isOpen={!componentEditor.hidden}
+              onDismiss={() => {
+                componentEditor.hidden = !componentEditor.hidden;
+              }}
+              isBlocking={false}
             >
               <ComponentEditorContent />
-            </Callout>
+            </Modal>
           )}
         </>
       )}
@@ -61,6 +65,7 @@ const ComponentEditorContent = observer(({ domNode, style }: any) => {
         source: "react-native",
       },
     ],
+    filter: "",
   });
 
   useEffect(() => {
@@ -102,55 +107,81 @@ const ComponentEditorContent = observer(({ domNode, style }: any) => {
         </div>
       </div>
       <div className="content">
-        {meta.components.map((item, idx) => {
-          return (
-            <Popover
-              key={idx}
-              calloutProps={{
-                directionalHint: DirectionalHint.rightCenter,
-                calloutWidth: 180,
-              }}
-              content={(popover: any) => {
-                return (
-                  <div
-                    style={{
-                      padding: 10,
-                      minHeight: 150,
-                    }}
-                  >
-                    Information Component
-                  </div>
-                );
-              }}
-            >
-              {({ show, hide, ref, state }: any) => {
-                return (
-                  <div
-                    ref={ref}
-                    className="item-component"
-                    onMouseOver={() => {
-                      show();
-                    }}
-                    onMouseOut={() => {
-                      hide();
-                    }}
-                  >
-                    <div className="component-info">
-                      <div className="label">{item.label}</div>
-                      <div className="source">~ {item.source}</div>
+        <input
+          className="search-input"
+          placeholder="Search Component"
+          value={meta.filter}
+          onChange={(e) => {
+            meta.filter = e.target.value;
+          }}
+        />
+        {meta.components
+          .filter((item: any) => {
+            if (meta.filter.length > 0) {
+              return (
+                fuzzyMatch(
+                  meta.filter.toLowerCase(),
+                  item.label.toLowerCase()
+                ) ||
+                fuzzyMatch(meta.filter.toLowerCase(), item.source.toLowerCase())
+              );
+            }
+            return true;
+          })
+
+          .map((item, idx) => {
+            return (
+              <Popover
+                key={idx}
+                calloutProps={{
+                  directionalHint: DirectionalHint.rightCenter,
+                  calloutWidth: 180,
+                }}
+                content={(popover: any) => {
+                  return (
+                    <div
+                      style={{
+                        padding: 10,
+                        minHeight: 150,
+                      }}
+                    >
+                      Information Component
                     </div>
-                    <div className="component-favorite">
-                      <IconStar size={13} color={fontColor} />
+                  );
+                }}
+              >
+                {({ show, hide, ref, state }: any) => {
+                  return (
+                    <div
+                      ref={ref}
+                      className="item-component"
+                      onMouseOver={() => {
+                        show();
+                      }}
+                      onMouseOut={() => {
+                        hide();
+                      }}
+                    >
+                      <div className="component-info">
+                        <div className="label">{item.label}</div>
+                        <div className="source">~ {item.source}</div>
+                      </div>
+                      <div className="component-favorite">
+                        <IconStar size={13} color={fontColor} />
+                      </div>
                     </div>
-                  </div>
-                );
-              }}
-            </Popover>
-          );
-        })}
+                  );
+                }}
+              </Popover>
+            );
+          })}
       </div>
       <style>
         {`
+        .search-input {
+          background: ${bgColor};
+          color: ${fontColor};
+        }
         .cactiva-components-editor {
           background: ${bgColor};
           display: flex;
